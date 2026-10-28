@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="src/OpenInventorExport.Cli/OpenInventorExport.Cli.csproj" Id="8fc3fd57-52d6-4f55-834f-9af28a217b0e" />
   <Project Path="src/OpenInventorExport.Core/OpenInventorExport.Core.csproj" Id="3f57052a-1f36-4f30-9f8b-fe4a1cc04064" />
   <Project Path="src/OpenInventorExport.Inventor/OpenInventorExport.Inventor.csproj" Id="ab474907-8916-4ea8-853e-a1264c96315d" />
   <Project Path="tests/OpenInventorExport.Core.Tests/OpenInventorExport.Core.Tests.csproj" Id="b0cbc5eb-4658-4d67-ac1a-c1f6ac346f9d" />

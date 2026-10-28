@@ -1,10 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+		<TargetFrameworks>net8.0-windows</TargetFrameworks> <!--net48;-->
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\OpenInventorExport.Core\OpenInventorExport.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="Autodesk.Inventor.Interop">
+			<HintPath>$(InventorPublicAssemblies)\Autodesk.Inventor.Interop.dll</HintPath>
+			<Private>True</Private>
+		</Reference>
 	</ItemGroup>
 </Project>

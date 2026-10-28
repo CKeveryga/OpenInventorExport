@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <InventorPublicAssemblies Condition="'$(InventorPublicAssemblies)' == ''">C:\Program Files\Autodesk\Inventor 2027\Bin\Public Assemblies</InventorPublicAssemblies>
+  </PropertyGroup>
+</Project>

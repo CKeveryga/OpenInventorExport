@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OpenInventorExport.Cli": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\dev\\OpenInventorExport\\output\\snapshot.json"
+    }
+  }
+}
