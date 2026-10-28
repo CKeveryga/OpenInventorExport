@@ -1,3 +1,15 @@
-﻿using OpenInventorExport.Inventor;
+﻿using OpenInventorExport.Core;
+using OpenInventorExport.Inventor;
 
-Console.WriteLine(InventorProbe.Describe());
+string outputPath = Path.GetFullPath(args.Length > 0 ? args[0] : "snapshot.json");
+
+var snapshot = SnapshotCollector.CollectFromRunningInventor();
+
+File.WriteAllText(outputPath, SnapshotJson.ToJson(snapshot));
+
+Console.WriteLine($"Components: {snapshot.Components.Count}");
+Console.WriteLine($"Skipped:    {snapshot.Skipped.Count}");
+Console.WriteLine($"Written to: {outputPath}");
+
+foreach (var line in SnapshotSummary.Describe(snapshot))
+    Console.WriteLine(line);

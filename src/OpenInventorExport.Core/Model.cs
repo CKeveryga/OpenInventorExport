@@ -32,6 +32,8 @@ public class ComponentRecord
     public int Level { get; set; }
     public bool IsSuppressed { get; set; }
     public bool IsVirtual { get; set; }
+    public string? BomStructure { get; set; }
+    public string? ParentPath { get; set; }
     public Dictionary<string, PropertyValue> Properties { get; set; } = new();
 }
 
