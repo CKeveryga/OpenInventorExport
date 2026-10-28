@@ -27,7 +27,7 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
   - When the owner proposes something that will cause pain later, say so kindly and offer an alternative.
   - Remind the owner to commit to git at sensible checkpoints.
   - Define jargon the first time it is used.
-- **Do not reuse or reconstruct code from the owner's previous employer.** This project is built clean-room from the owner's own knowledge of the *problem*, not from prior source code.
+- **Only use code the owner wrote or has the rights to.** Do not copy code belonging to a previous employer or any third party into this repo. Code the owner authored themselves is fine to bring in.
 
 ---
 
@@ -252,7 +252,9 @@ Each milestone should be working, committed, and tagged before the next begins.
 1. ~~Which Inventor version(s)?~~ **Resolved: 2023 and newer**, via multi-targeting (net48 + net8.0-windows). Prefer the CLI (out-of-process) as the primary engine so one build works across versions; the add-in is a thin launcher. Project/repo name: **OpenInventorExport** (use `OpenInventorExport.*` as the namespace/project prefix instead of `InvExport.*` used in the diagrams above).
 2. Add-in only, or also standalone CLI in v1?
 3. How are **drawings matched** to models in the owner's typical workflow?
-4. Should **quantities** be rolled up (flat BOM) or listed per occurrence (structured)? Likely both, as options.
+4. ~~Quantity rollup~~ **Resolved: configurable per export.** Modes: `Occurrence` (one row per occurrence), `Structured` (roll up within each parent), `Flat` (roll up across whole tree, quantities multiplied through levels). Rollup is a Core transformation applied to the snapshot, never done during traversal. Each export also defines a rollup **key** (e.g. Part Number, file path, or combination) and a **conflict rule** for rows sharing a key but differing in other columns (first / join / flag).
+   - Traversal options must also cover Inventor BOM structure handling (Reference, Phantom, Inseparable assemblies), as these are known causes of count differences vs. Inventor's own BOM.
+   - Future feature: **reconciliation report** comparing the tool's component list against Inventor's BOM.
 5. Should the tool **write back** to Inventor (create/repair custom properties) in v1, or only read?
 6. File-export **destination** types: local folder, network share, zip — anything else?
 7. Single user or shared team config location?
