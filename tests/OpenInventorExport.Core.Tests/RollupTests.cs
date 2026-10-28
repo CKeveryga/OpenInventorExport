@@ -75,4 +75,19 @@ public class RollupTests
             new[] { "Description" });
         Assert.Contains("\"Bolt, 5\"\" long\"", csv);
     }
+
+    [Fact]
+    public void Structured_ListsChildrenUnderEachDistinctParentChain()
+    {
+        var s = Sample(); // Top holds Sub x2, each with 2 bolts, plus a plate
+        s.Components.Add(Rec("Top.iam/Other:1", "Top.iam", "Other.iam", "Assembly", 1));
+        s.Components.Add(Rec("Top.iam/Other:1/Sub:1", "Top.iam/Other:1", "Sub.iam", "Assembly", 2));
+        s.Components.Add(Rec("Top.iam/Other:1/Sub:1/Bolt:1", "Top.iam/Other:1/Sub:1", "Bolt.ipt", "Part", 3));
+        s.Components.Add(Rec("Top.iam/Other:1/Sub:1/Bolt:2", "Top.iam/Other:1/Sub:1", "Bolt.ipt", "Part", 3));
+
+        var rows = Rollup.Apply(s, new RollupOptions { Mode = RollupMode.Structured });
+
+        // Bolt now appears under two different Sub placements
+        Assert.Equal(2, rows.Count(r => r.Component.FileName == "Bolt.ipt"));
+    }
 }

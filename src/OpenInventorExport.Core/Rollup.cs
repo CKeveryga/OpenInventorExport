@@ -65,21 +65,32 @@ public static class Rollup
     }
 
     private static List<ExportRow> Structured(
-        Snapshot snapshot, List<ComponentRecord> candidates, RollupOptions options)
+    Snapshot snapshot, List<ComponentRecord> candidates, RollupOptions options)
     {
         var byPath = snapshot.Components
             .GroupBy(c => c.OccurrencePath)
             .ToDictionary(g => g.Key, g => g.First());
 
+        // A parent is identified by its full chain of ancestors, e.g. "/Top/Sub".
+        var structKeys = new Dictionary<string, string>();
+        string StructKey(ComponentRecord c)
+        {
+            if (structKeys.TryGetValue(c.OccurrencePath, out var cached)) return cached;
+            string parentPart = c.ParentPath != null && byPath.TryGetValue(c.ParentPath, out var p)
+                ? StructKey(p)
+                : "";
+            string key = parentPart + "/" + options.Key(c);
+            structKeys[c.OccurrencePath] = key;
+            return key;
+        }
+
         var rows = new List<ExportRow>();
         var seen = new HashSet<(string parent, string child)>();
 
-        // Look at the children of each parent instance. The first instance of a
-        // given parent item defines what that item contains; later copies are skipped.
         foreach (var parentGroup in candidates.GroupBy(c => c.ParentPath ?? ""))
         {
             string parentKey = byPath.TryGetValue(parentGroup.Key, out var parent)
-                ? options.Key(parent)
+                ? StructKey(parent)
                 : "";
 
             foreach (var child in parentGroup.GroupBy(options.Key))
