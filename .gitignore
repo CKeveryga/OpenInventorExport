@@ -5,6 +5,7 @@
 
 # Temporary sensitive information
 snapshot*.json
+output/
 
 # User-specific files
 *.rsuser
