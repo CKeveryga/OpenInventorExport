@@ -7,4 +7,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\OpenInventorExport.Core\OpenInventorExport.Core.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="Autodesk.Inventor.Interop">
+			<HintPath>$(InventorPublicAssemblies)\Autodesk.Inventor.Interop.dll</HintPath>
+			<Private>True</Private>
+		</Reference>
+	</ItemGroup>
 </Project>
