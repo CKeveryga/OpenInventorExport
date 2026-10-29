@@ -32,7 +32,10 @@ public static class SnapshotCollector
             string key;
             try
             {
-                key = ((global::Inventor.Document)row.ComponentDefinitions[1].Document).FullFileName;
+                var def = row.ComponentDefinitions[1];
+                key = def is global::Inventor.VirtualComponentDefinition
+                    ? "(virtual)"
+                    : ((global::Inventor.Document)def.Document).FullFileName;
             }
             catch
             {
