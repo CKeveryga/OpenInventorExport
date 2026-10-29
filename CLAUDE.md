@@ -13,14 +13,15 @@
 - Latest tag: `v0.2-csv`. `main` is buildable; work happens on short-lived feature branches.
 - **Validation result (the key proof), assembly 1** (552 occurrences, 68 sub-assembly occurrences, 18 unique assemblies, 159 unique files): flat / parts-only qty **482 = Inventor "Parts Only" BOM**; structured qty **424 = Inventor "Structured" BOM**.
 - **Validation result, edge-case assembly (`PJ MK 2.iam`)**: 541 components, 6 suppressed, 1 virtual, 2 phantom, 2 reference, 1 purchased, 20 inseparable assemblies. Flat parts-only qty **444 = Inventor Parts Only**. Structured qty **420 = Inventor Structured**, but only with `Inseparable = IncludeChildren` and `ExcludePhantom = true` (see 4.4).
+- **File export verified on Inventor 2027:** STEP (model), PDF (drawing, all sheets and first sheet only), DWG, DXF, DWF (drawing) all export correctly. DWF of the top-level assembly model also verified. Drawing lookup via `ResolveFile` (same name, any project folder) found the top-level drawing and others; no `DrawingMismatch` results on the edge-case assembly.
 - Edge cases confirmed matching Inventor: suppressed (excluded), virtual (counted once), phantom (excluded), reference (excluded), purchased (included), inseparable (mode-dependent).
 - **Corrected from this review:** the CSV now shows the virtual row's Part Number; Structured mode does not yet default to `IncludeChildren` automatically (**pending**, see 4.4).
 
 **Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; owner should confirm the exact date). After it expires nothing that needs Inventor can be run or tested. **Prioritize Inventor-dependent work first** (file-export translators, property read/write, edge cases). Pure-Core work (config format, rules engine, XLSX/SQLite writers, config editor UI) can be built after the trial from saved snapshots.
 
 **Next up (suggested order):**
-1. Make Structured default to `IncludeChildren` (with a unit test), commit, push, tag `v0.2.5`.
-2. **File export tasks (roadmap #7):** PDF/DWG/DXF from drawings, STEP from models, via Inventor translators; task list + log. Needs a test `.idw` drawing for at least a few parts. Note: `FullPath` can carry a `<member>` suffix (see Section 7); strip it before passing paths to translators.
+1. **Task runner (roadmap #7):** one plan, many exports, one results log. Model each task as Format (Step, Pdf, Dwg, Dxf, Dwf) x Source (Model, Drawing) x Scope (TopLevelOnly, AllUniqueFiles). Reject nonsense combinations up front (e.g. PDF from a model).
+2. STEP/DWF from models need a model-based exporter (open the model invisibly, strip the `<member>` suffix, `SaveCopyAs`), like the owner's old `AddinManager.Export(PartDocument/AssemblyDocument)`.
 3. Custom property read/write and schema validation (roadmap #4).
 4. Save sanitized snapshots from every test assembly as fixtures for post-trial development.
 5. Later (no Inventor needed): config file format, rules engine, XLSX/SQLite, config editor.
@@ -125,7 +126,6 @@ Rollup is a **Core transformation on the snapshot**, never done during traversal
 - `Occurrence`: one row per occurrence, qty 1.
 - `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain** (not just its file), so the same sub-assembly under two different parents lists its children under each. (An earlier version keyed parents by file only and came out 4 short vs Inventor.)
 - `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels.
-
 `RollupOptions`: `Mode`, `IncludeAssemblies`, `IncludeRoot` (default false), `ExcludePhantom` (default true), `ExcludeReference` (default true), `ExcludeSuppressed` (default true), `Inseparable` (`AsSingleItem` | `IncludeChildren`), `Key` (default: full path/file name; later configurable, e.g. Part Number).
 **Validated BOM rules (against Inventor 2027):**
 - **Inseparable assemblies depend on the BOM view.** Inventor's *Parts Only* BOM hides their children (use `AsSingleItem`). Inventor's *Structured* BOM lists their children (use `IncludeChildren`). Structured mode must therefore default to `IncludeChildren`. **(pending implementation in `Rollup.cs`; until then, set it explicitly in the caller.)**
@@ -156,11 +156,16 @@ OpenInventorExport/               (repo root; .sln here)
 │  │   SnapshotSummary.cs         # counts by DocumentType/BomStructure/Virtual (+ unique files, if added)
 │  │   Rollup.cs                  # RollupMode, RollupOptions, ExportRow, Rollup.Apply
 │  │   CsvTableWriter.cs          # CSV with proper escaping
+│  │   ExportResult.cs            # PdfSheetMode, ExportStatus, ExportResult (one per export task)
+│  │   PathUtil.cs                # StripMemberSuffix, DrawingBaseName
 │  ├─ OpenInventorExport.Inventor/    net8.0-windows (net48 pending), ImplicitUsings on
 │  │   InventorConnection.cs      # P/Invoke GetActiveObject (Marshal.GetActiveObject doesn't exist in modern .NET)
 │  │   AssemblyTraverser.cs       # recursive walk -> Snapshot
 │  │   SnapshotCollector.cs       # facade used by the CLI
 │  │   InventorProbe.cs           # connection test
+│  │   DrawingLocator.cs          # finds drawing by model name via DesignProjectManager.ResolveFile (.idw, .dwg)
+│  │   DrawingBatch.cs            # shared loop: find drawing, open invisibly, verify it references the model, save, close; wrapped in SilentOperation
+│  │   StepExporter.cs, PdfExporter.cs, CadExporter.cs   # translator-based exporters (CadExporter = DWG/DXF/DWF)
 │  └─ OpenInventorExport.Cli/         net8.0-windows exe
 │      Program.cs                 # collect -> snapshot.json -> rollup -> CSV; prints totals vs Inventor's Parts Only BOM and a Structured option matrix
 ├─ tests/
@@ -207,6 +212,10 @@ Traverser currently: records suppressed occurrences in `Skipped` (reason Suppres
 - **Not yet verified:** Content Center / iPart / iAssembly members in detail; Reference BOM handling beyond the totals; quantity overrides in Inventor's BOM; multiple model states/LOD; files that fail to resolve; patterns (not explicitly checked); performance on large assemblies; COM object release; virtual component iProperties (fix pending); mass (most parts read `0`, probably never computed in the file, so treat Mass as unreliable).
 - **Drawings are not discoverable from the model** (a drawing references a model, not vice versa). Needs a configurable association strategy (same-name-in-same-folder, search paths, naming rules; Vault later).
 - Translators (DWG/DXF/STEP/PDF) use Inventor translator add-ins with `NameValueMap` option maps; each format needs its own options in config.
+- **Translators:** IDs confirmed for PDF `{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}`, DWG `{C24E3AC2-122E-11D5-8E91-0010B541CD80}`, DXF `{C24E3AC4-122E-11D5-8E91-0010B541CD80}`, DWF `{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}`, STEP `{90AF7F40-0C01-11D5-8E83-0010B541CD80}`. Use a fresh `NameValueMap` and set only needed options. DWG/DXF: `USE_TRANSMITTAL="No"`; `Export_Acad_IniFile` is optional (layer/version mapping) and will become an export-config setting. DWF: `Launch_Viewer=0`, `Publish_All_Component_Props=1`, `Publish_All_Physical_Props=1`; `Publish_3D_Models=1` for models. PDF: `All_Color_AS_Black`, `Remove_Line_Weights`, `Vector_Resolution`, `Sheet_Range` (`AllInOne` and `FirstOnly` verified). STEP: `ApplicationProtocolType=3` (AP214) after `HasSaveCopyAsOptions`. **Do not call `HasSaveCopyAsOptions` for DWG/DXF** (it caused E_INVALIDARG in our early attempt, though the exact cause was not isolated).
+- **`Application.SilentOperation = true`** during batch exports suppresses option dialogs and prompts; always restore the previous value in `finally`.
+- Drawings are opened invisibly (`Documents.Open(path, false)`), verified via `ReferencedDocuments`, exported, then closed unless the user already had them open. Verified: no drawings left open or modified.
+- Interop types are interfaces: `DrawingDocument` to `Document` needs an explicit cast when passed to a `Document` parameter.
 
 ---
 
@@ -217,8 +226,8 @@ Traverser currently: records suppressed occurrences in `Skipped` (reason Suppres
 | 0 | Repo + solution skeleton | Done |
 | 1 | Traverse & dump (`snapshot.json`) | Done |
 | 2 | Rollup engine + basic CSV | **Done, validated vs Inventor (482 / 424)** |
-| 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable) | **Done: flat 444 = 444, structured 420 = 420.** Pending: Structured default |
-| 7 | File export tasks (PDF/DWG/DXF/STEP) | **Do next while trial is active** |
+| 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable) | **Done: flat 444 = 444, structured 420 = 420.** |
+| 7 | Probes done (STEP, PDF, DWG, DXF, DWF); task runner next | 
 | 4 | Property schema (read/write custom iProperties) | Needs Inventor; do during trial |
 | 3 | Config file v1 (columns, traversal, rollup from JSON) | After trial OK |
 | 5 | Rules engine | After trial OK |
@@ -261,6 +270,8 @@ Resist building UI early; a good config *format* first.
 5. Single user or shared team config location?
 6. Rollup key default (file path vs Part Number) and conflict rule. Inventor merges rows by Part Number, so this now affects row-for-row comparison with Inventor's BOM.
 7. Add-in launcher timing, and who will test `net48` on 2023/2024.
+8. DWG/DXF layer-mapping ini: per-export setting in config (optional). Multi-sheet behavior of DWG/DXF/DWF still to be documented.
+9. Output file naming and collisions (two models with the same base name from different folders).
 
 ---
 
