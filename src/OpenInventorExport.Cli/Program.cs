@@ -167,8 +167,19 @@ foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
 foreach (var g in results.GroupBy(r => r.Status))
     Console.WriteLine($"{g.Key}: {g.Count()}");
 
+
+
+
 //string outFolder = Path.GetFullPath(args.Length > 0 ? args[0] : "cad");
 //var format = args.Length > 1 ? Enum.Parse<CadFormat>(args[1], true) : CadFormat.Dxf;
 //string? ini = args.Length > 2 ? args[2] : null;
 //...
 //var results = CadExporter.ExportDrawings(files, outFolder, format, ini);
+
+
+
+
+//using OpenInventorExport.Inventor;
+
+//string path = Path.GetFullPath(args.Length > 0 ? args[0] : "top.dwf");
+//Console.WriteLine("Exported: " + CadExporter.ExportActiveModelAsDwf(path));

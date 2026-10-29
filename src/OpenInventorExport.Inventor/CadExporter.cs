@@ -23,7 +23,7 @@ public static class CadExporter
         if (!translator.Activated) translator.Activate();
 
         return DrawingBatch.Run(app, modelPaths, outputFolder, ExtensionFor(format),
-            (drw, path) => Save(app, translator, drw, path, format, iniFile));
+            (doc, path) => Save(app, translator, (Inv.Document)doc, path, format, iniFile));
     }
 
     private static string IdFor(CadFormat f) => f switch
@@ -41,7 +41,7 @@ public static class CadExporter
     };
 
     private static void Save(Inv.Application app, Inv.TranslatorAddIn translator,
-        Inv.DrawingDocument drw, string path, CadFormat format, string? iniFile)
+        Inv.Document doc, string path, CadFormat format, string? iniFile)
     {
         var context = app.TransientObjects.CreateTranslationContext();
         context.Type = Inv.IOMechanismEnum.kFileBrowseIOMechanism;
@@ -63,6 +63,27 @@ public static class CadExporter
 
         var data = app.TransientObjects.CreateDataMedium();
         data.FileName = path;
-        translator.SaveCopyAs(drw, context, options, data);
+        translator.SaveCopyAs(doc, context, options, data);
+    }
+
+    /// <summary>Exports the ACTIVE document (normally the top-level assembly) to DWF.</summary>
+    public static string ExportActiveModelAsDwf(string outputPath)
+    {
+        var app = InventorConnection.GetRunningInventor();
+        var translator = (Inv.TranslatorAddIn)app.ApplicationAddIns.ItemById[DwfTranslatorId];
+        if (!translator.Activated) translator.Activate();
+
+        bool wasSilent = app.SilentOperation;
+        app.SilentOperation = true;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            Save(app, translator, app.ActiveDocument, outputPath, CadFormat.Dwf, null);
+        }
+        finally
+        {
+            app.SilentOperation = wasSilent;
+        }
+        return outputPath;
     }
 }

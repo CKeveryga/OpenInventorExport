@@ -2,7 +2,7 @@
   "profiles": {
     "OpenInventorExport.Cli": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\dev\\OpenInventorExport\\output\\pdfs"
+      "commandLineArgs": "C:\\dev\\OpenInventorExport\\output\\pdfs\\"
     }
   }
 }

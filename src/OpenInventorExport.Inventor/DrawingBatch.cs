@@ -9,7 +9,26 @@ internal static class DrawingBatch
     /// For each model: find its drawing, check it references the model, run the save action, close it.
     /// Returns one result per model.
     /// </summary>
+    /// 
     public static List<ExportResult> Run(
+    Inv.Application app,
+    IEnumerable<string> modelPaths,
+    string outputFolder,
+    string extension,
+    Action<Inv.DrawingDocument, string> save)
+    {
+        bool wasSilent = app.SilentOperation;
+        app.SilentOperation = true;
+        try
+        {
+            return RunCore(app, modelPaths, outputFolder, extension, save);
+        }
+        finally
+        {
+            app.SilentOperation = wasSilent;
+        }
+    }
+    private static List<ExportResult> RunCore(
         Inv.Application app,
         IEnumerable<string> modelPaths,
         string outputFolder,
