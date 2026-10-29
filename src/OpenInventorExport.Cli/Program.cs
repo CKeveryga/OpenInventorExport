@@ -139,10 +139,36 @@ var files = snapshot.Components
     .OrderBy(p => p)
     .ToList();
 
-var results = PdfExporter.ExportDrawings(files, outFolder, PdfSheetMode.FirstOnly);
+//var results = PdfExporter.ExportDrawings(files, outFolder, PdfSheetMode.FirstOnly);
+var results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dwg);   // then CadFormat.Dxf
 
 foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
     Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
 
 foreach (var g in results.GroupBy(r => r.Status))
     Console.WriteLine($"{g.Key}: {g.Count()}");
+
+
+results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dxf);   // then CadFormat.Dxf
+
+foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
+    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
+
+foreach (var g in results.GroupBy(r => r.Status))
+    Console.WriteLine($"{g.Key}: {g.Count()}");
+
+
+
+results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dwf);   // then CadFormat.Dxf
+
+foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
+    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
+
+foreach (var g in results.GroupBy(r => r.Status))
+    Console.WriteLine($"{g.Key}: {g.Count()}");
+
+//string outFolder = Path.GetFullPath(args.Length > 0 ? args[0] : "cad");
+//var format = args.Length > 1 ? Enum.Parse<CadFormat>(args[1], true) : CadFormat.Dxf;
+//string? ini = args.Length > 2 ? args[2] : null;
+//...
+//var results = CadExporter.ExportDrawings(files, outFolder, format, ini);

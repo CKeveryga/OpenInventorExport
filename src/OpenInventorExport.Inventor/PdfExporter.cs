@@ -13,73 +13,14 @@ public static class PdfExporter
     /// and exports the drawing to PDF. Returns one result per model.
     /// </summary>
     public static List<ExportResult> ExportDrawings(
-        IEnumerable<string> modelPaths, string outputFolder, PdfSheetMode sheets)
+    IEnumerable<string> modelPaths, string outputFolder, PdfSheetMode sheets)
     {
         var app = InventorConnection.GetRunningInventor();
-        Directory.CreateDirectory(outputFolder);
-
         var translator = (Inv.TranslatorAddIn)app.ApplicationAddIns.ItemById[PdfTranslatorId];
         translator.Activate();
 
-        var results = new List<ExportResult>();
-        var doneDrawings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (string model in modelPaths)
-        {
-            var result = new ExportResult { ModelPath = model };
-            results.Add(result);
-            Inv.Document? opened = null;
-
-            try
-            {
-                string? drawingPath = DrawingLocator.Find(app, model);
-                result.DrawingPath = drawingPath;
-                if (drawingPath == null)
-                {
-                    result.Status = ExportStatus.NoDrawing;
-                    result.Detail = "No .idw or .dwg with the model's name found on the project paths";
-                    continue;
-                }
-
-                if (!doneDrawings.Add(drawingPath))
-                {
-                    result.Status = ExportStatus.Failed;
-                    result.Detail = "Same drawing already exported for another model";
-                    continue;
-                }
-
-                // Open invisibly, unless the user already has it open (then leave it open).
-                Inv.Document? drawing = FindOpenDocument(app, drawingPath);
-                if (drawing == null)
-                {
-                    drawing = app.Documents.Open(drawingPath, false);
-                    opened = drawing;
-                }
-
-                if (!References(drawing, model))
-                {
-                    result.Status = ExportStatus.DrawingMismatch;
-                    result.Detail = "Drawing found by name does not reference this model";
-                    continue;
-                }
-
-                string pdfPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(drawingPath) + ".pdf");
-                SaveAsPdf(app, translator, (Inv.DrawingDocument)drawing, pdfPath, sheets);
-
-                result.OutputPath = pdfPath;
-                result.Status = ExportStatus.Exported;
-            }
-            catch (Exception ex)
-            {
-                result.Status = ExportStatus.Failed;
-                result.Detail = ex.Message;
-            }
-            finally
-            {
-                try { opened?.Close(true); } catch { /* closing is best effort */ }
-            }
-        }
-        return results;
+        return DrawingBatch.Run(app, modelPaths, outputFolder, ".pdf",
+            (drw, path) => SaveAsPdf(app, translator, drw, path, sheets));
     }
 
     private static void SaveAsPdf(Inv.Application app, Inv.TranslatorAddIn translator,
@@ -108,28 +49,5 @@ public static class PdfExporter
         var data = app.TransientObjects.CreateDataMedium();
         data.FileName = pdfPath;
         translator.SaveCopyAs(drw, context, options, data);
-    }
-
-    private static bool References(Inv.Document drawing, string modelPath)
-    {
-        string wanted = PathUtil.StripMemberSuffix(modelPath);
-        var refs = drawing.ReferencedDocuments;
-        for (int i = 1; i <= refs.Count; i++)
-        {
-            if (string.Equals(refs[i].FullFileName, wanted, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
-
-    private static Inv.Document? FindOpenDocument(Inv.Application app, string path)
-    {
-        for (int i = 1; i <= app.Documents.Count; i++)
-        {
-            var d = app.Documents[i];
-            if (string.Equals(d.FullFileName, path, StringComparison.OrdinalIgnoreCase))
-                return d;
-        }
-        return null;
     }
 }
