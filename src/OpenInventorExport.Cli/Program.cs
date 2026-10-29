@@ -17,7 +17,7 @@ foreach (var line in SnapshotSummary.Describe(snapshot))
 var flat = Rollup.Apply(snapshot, new RollupOptions
 { Mode = RollupMode.Flat, IncludeAssemblies = false });
 var structured = Rollup.Apply(snapshot, new RollupOptions
-{ Mode = RollupMode.Structured });
+{ Mode = RollupMode.Structured, Inseparable = InseparableHandling.IncludeChildren });
 
 var invBom = SnapshotCollector.ReadPartsOnlyBom();
 

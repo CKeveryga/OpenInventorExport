@@ -75,7 +75,7 @@ MainSponsorPlate.ipt,1,MainSponsorPlate,,0
 FacePlate.ipt,1,FacePlate,,0
 FacePlate tankside.ipt,1,FacePlate,,0
 VirtualComponentTest.ipt,1,VirtualComponentTest,,0
- ActualVirtualComponent:1,1,,,
+ActualVirtualComponent:1,1, ActualVirtualComponent,,0
 chassis shaft.iam,16,chassis shaft,,0
 OmniAssembly.iam,1,OmniAssembly,,0
 Omni Wheel Asm.iam,3,Omni Wheel Asm,,0
@@ -119,6 +119,8 @@ BrainMount.ipt,1,BrainMount,,0
 BatteryMount.ipt,1,BatteryMount,,0
 Shaft LS 2.5.ipt,1,,STEP AP203,0
 adapted 106 bearing.iam,1,adapted 106 bearing,,0
+106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,0
+106 bearing insert.ipt,1,Bearing Insert,,0
 WheelBody.ipt,2,WheelBody,,0
 Roller.ipt,14,Roller,,0
 RollerShaft.ipt,14,RollerShaft,,0
@@ -135,11 +137,15 @@ SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,0
 Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,1.5158060485894695
 DriveGear.ipt,1,DriveGear,,0
 2.75 Traction Antistatic.ipt,1,2.75 (220mm Travel) Anti-Static Wheel (276-8098),STEP AP203,0
+106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,0
+106 bearing insert.ipt,1,Bearing Insert,,0
 NCJ2B10-050.ipt,1,NCJ2B10-050,,0
 NCJ2B10-050_1.ipt,1,NCJ2B10-050,,0
 NCJ2B10-050_2.ipt,1,NCJ2B10-050,,0
 NCJ2B10-050_3.ipt,1,NCJ2B10-050,,0
 6P 8T Sprocket.ipt,1,276-8030-001 Rev3,STEP AP214,0
+106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,0
+106 bearing insert.ipt,1,Bearing Insert,,0
 Single Acting Piston Rod.ipt,1,Single Acting Piston Rod,,0
 Single Acting Piston Body.ipt,1,Single Acting Piston Body,,0
 Double Acting Piston Body.ipt,1,Double Acting Piston Body,,0

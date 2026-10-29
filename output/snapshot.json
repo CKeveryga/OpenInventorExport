@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 1,
-  "CreatedUtc": "2026-10-29T01:56:12.2508802Z",
+  "CreatedUtc": "2026-10-29T02:06:20.7928262Z",
   "InventorVersion": "2027.1 (Build 311270010, 270A)",
   "SourceFile": "C:\\InvModels\\Robot\\Push Back PJ\\PJ MK 2.iam",
   "ModelState": "[Primary]",
@@ -127029,7 +127029,7 @@
     },
     {
       "OccurrencePath": "PJ MK 2.iam/ ActualVirtualComponent:1",
-      "FileName": " ActualVirtualComponent:1",
+      "FileName": "ActualVirtualComponent:1",
       "FullPath": null,
       "DocumentType": "Virtual",
       "SubType": null,
@@ -127039,7 +127039,228 @@
       "IsVirtual": true,
       "BomStructure": "kNormalBOMStructure",
       "ParentPath": "PJ MK 2.iam",
-      "Properties": {}
+      "Properties": {
+        "Creation Time": {
+          "DataType": "Date",
+          "Value": null
+        },
+        "Part Number": {
+          "DataType": "Text",
+          "Value": " ActualVirtualComponent"
+        },
+        "Project": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Cost Center": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Checked By": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Date Checked": {
+          "DataType": "Date",
+          "Value": null
+        },
+        "Engr Approved By": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Engr Date Approved": {
+          "DataType": "Date",
+          "Value": null
+        },
+        "User Status": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Material": {
+          "DataType": "Text",
+          "Value": "Generic"
+        },
+        "Part Property Revision Id": {
+          "DataType": "Text",
+          "Value": null
+        },
+        "Catalog Web Link": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Part Icon": {
+          "DataType": "Text",
+          "Value": null
+        },
+        "Description": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Vendor": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Document SubType": {
+          "DataType": "Text",
+          "Value": null
+        },
+        "Document SubType Name": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Proxy Refresh Date": {
+          "DataType": "Date",
+          "Value": null
+        },
+        "Mfg Approved By": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Mfg Date Approved": {
+          "DataType": "Date",
+          "Value": null
+        },
+        "Cost": {
+          "DataType": "Number",
+          "Value": "0.0000"
+        },
+        "Standard": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Design Status": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Designer": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Engineer": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Authority": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Parameterized Template": {
+          "DataType": "Boolean",
+          "Value": "False"
+        },
+        "Template Row": {
+          "DataType": "Text",
+          "Value": null
+        },
+        "External Property Revision Id": {
+          "DataType": "Text",
+          "Value": null
+        },
+        "Standard Revision": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Manufacturer": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Standards Organization": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Language": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Defer Updates": {
+          "DataType": "Boolean",
+          "Value": "False"
+        },
+        "Size Designation": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Categories": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Stock Number": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Weld Material": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Mass": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "SurfaceArea": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Volume": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Density": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Valid MassProps": {
+          "DataType": "Number",
+          "Value": "31"
+        },
+        "Flat Pattern Width": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Flat Pattern Length": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Flat Pattern Area": {
+          "DataType": "Number",
+          "Value": "0"
+        },
+        "Sheet Metal Rule": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Last Updated With": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Sheet Metal Width": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Sheet Metal Length": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Sheet Metal Area": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Material Identifier": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Appearance": {
+          "DataType": "Text",
+          "Value": ""
+        },
+        "Flat Pattern Defer Update": {
+          "DataType": "Boolean",
+          "Value": "False"
+        },
+        "Revit Category": {
+          "DataType": "Number",
+          "Value": "0"
+        }
+      }
     }
   ],
   "Skipped": [

@@ -46,7 +46,7 @@ public class AssemblyTraverser
             DocumentType = "Assembly",
             Level = 0
         };
-        ReadProperties((Inv.Document)asm, root);
+        ReadProperties(((Inv.Document)asm).PropertySets, root);
         _snapshot.Components.Add(root);
 
         // Collect the first-level occurrences, then walk down
@@ -118,7 +118,21 @@ public class AssemblyTraverser
                     }
 
                     if (occ.Definition.Document is Inv.Document doc)
-                        ReadProperties(doc, rec);
+                        ReadProperties(doc.PropertySets, rec);
+                }
+                else
+                {
+                    rec.FileName = rec.FileName.Trim();   // occurrence name has a leading space
+                    try
+                    {
+                        var vdef = (Inv.VirtualComponentDefinition)occ.Definition;
+                        ReadProperties(vdef.PropertySets, rec);
+                    }
+                    catch (Exception ex)
+                    {
+                        AddSkipped(path, SkipReason.Error,
+                            "Virtual component properties unreadable: " + ex.Message);
+                    }
                 }
 
                 _snapshot.Components.Add(rec);
@@ -139,19 +153,19 @@ public class AssemblyTraverser
         }
     }
 
-    private static void ReadProperties(Inv.Document doc, ComponentRecord rec)
+    private static void ReadProperties(Inv.PropertySets sets, ComponentRecord rec)
     {
         string[] setNames =
         {
-            "Design Tracking Properties",
-            "Inventor User Defined Properties"
-        };
+        "Design Tracking Properties",
+        "Inventor User Defined Properties"
+    };
 
         foreach (string setName in setNames)
         {
             try
             {
-                Inv.PropertySet set = doc.PropertySets[setName];
+                Inv.PropertySet set = sets[setName];
                 for (int i = 1; i <= set.Count; i++)
                 {
                     try
