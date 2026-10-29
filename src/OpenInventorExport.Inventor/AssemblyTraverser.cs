@@ -50,7 +50,31 @@ public class AssemblyTraverser
             {
                 if (occ.Suppressed)
                 {
-                    AddSkipped(path, SkipReason.Suppressed, "Component is suppressed");
+                    var sup = new ComponentRecord
+                    {
+                        OccurrencePath = path,
+                        ParentPath = parentPath,
+                        FileName = SafeName(occ),
+                        Level = level,
+                        IsSuppressed = true
+                    };
+                    try { sup.BomStructure = occ.BOMStructure.ToString(); } catch { }
+                    try
+                    {
+                        sup.FullPath = occ.ReferencedDocumentDescriptor.FullDocumentName;
+                        sup.FileName = Path.GetFileName(sup.FullPath);
+                    }
+                    catch { }
+                    try
+                    {
+                        sup.DocumentType = occ.DefinitionDocumentType ==
+                            Inv.DocumentTypeEnum.kAssemblyDocumentObject ? "Assembly" : "Part";
+                    }
+                    catch { }
+
+                    _snapshot.Components.Add(sup);
+                    AddSkipped(path, SkipReason.Suppressed,
+                        "Suppressed: recorded, but properties and children not read");
                     continue;
                 }
 
@@ -95,7 +119,12 @@ public class AssemblyTraverser
                 }
                 else
                 {
-                    rec.FileName = SafeName(occ);
+                    //rec.FileName = SafeName(occ);
+
+                    rec.SubType = "Virtual";
+                    int subCount = 0;
+                    try { subCount = occ.SubOccurrences.Count; } catch { }
+                    rec.DocumentType = subCount > 0 ? "Assembly" : "Part";
                 }
 
                 _snapshot.Components.Add(rec);

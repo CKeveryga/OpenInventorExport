@@ -6,14 +6,19 @@ using OpenInventorExport.Core.Model;
 namespace OpenInventorExport.Core;
 
 public enum RollupMode { Occurrence, Structured, Flat }
+public enum InseparableHandling { AsSingleItem, IncludeChildren }
 
 public class RollupOptions
 {
     public RollupMode Mode { get; set; } = RollupMode.Flat;
     public bool IncludeAssemblies { get; set; } = true;
     public bool ExcludePhantom { get; set; } = true;
+    public bool ExcludeReference { get; set; } = true;
+    public bool ExcludeSuppressed { get; set; } = true;
 
-    /// <summary>What makes two components "the same item". Default: the file.</summary>
+    /// <summary>AsSingleItem matches Inventor: the assembly is one row, its children are hidden.</summary>
+    public InseparableHandling Inseparable { get; set; } = InseparableHandling.AsSingleItem;
+
     public Func<ComponentRecord, string> Key { get; set; } =
         c => c.FullPath ?? c.FileName;
 }
@@ -37,10 +42,32 @@ public static class Rollup
     public static List<ExportRow> Apply(Snapshot snapshot, RollupOptions options)
     {
         // The top-level assembly (Level 0) is the thing being exported, not a row in it.
+        var byPath = snapshot.Components
+            .GroupBy(c => c.OccurrencePath)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        bool InsideInseparable(ComponentRecord c)
+        {
+            var current = c;
+            while (current.ParentPath != null && byPath.TryGetValue(current.ParentPath, out var parent))
+            {
+                if (parent.BomStructure == "kInseparableBOMStructure") return true;
+                current = parent;
+            }
+            return false;
+        }
+
+        bool KeptInseparableAssembly(ComponentRecord c) =>
+            c.BomStructure == "kInseparableBOMStructure"
+            && options.Inseparable == InseparableHandling.AsSingleItem;
+
         var candidates = snapshot.Components
             .Where(c => c.Level > 0)
-            .Where(c => options.IncludeAssemblies || c.DocumentType != "Assembly")
             .Where(c => !(options.ExcludePhantom && c.BomStructure == "kPhantomBOMStructure"))
+            .Where(c => !(options.ExcludeReference && c.BomStructure == "kReferenceBOMStructure"))
+            .Where(c => !(options.ExcludeSuppressed && c.IsSuppressed))
+            .Where(c => options.Inseparable == InseparableHandling.IncludeChildren || !InsideInseparable(c))
+            .Where(c => options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptInseparableAssembly(c))
             .ToList();
 
         switch (options.Mode)

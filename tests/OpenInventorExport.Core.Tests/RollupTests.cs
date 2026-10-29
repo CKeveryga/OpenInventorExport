@@ -90,4 +90,34 @@ public class RollupTests
         // Bolt now appears under two different Sub placements
         Assert.Equal(2, rows.Count(r => r.Component.FileName == "Bolt.ipt"));
     }
+
+    [Fact]
+    public void Inseparable_AsSingleItem_KeepsAssemblyHidesChildren()
+    {
+        var s = Sample();
+        foreach (var c in s.Components.Where(c => c.FileName == "Sub.iam"))
+            c.BomStructure = "kInseparableBOMStructure";
+
+        var rows = Rollup.Apply(s, new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false });
+
+        Assert.DoesNotContain(rows, r => r.Component.FileName == "Bolt.ipt");
+        Assert.Equal(2, rows.Single(r => r.Component.FileName == "Sub.iam").Quantity);
+    }
+
+    [Fact]
+    public void Inseparable_IncludeChildren_ListsEverything()
+    {
+        var s = Sample();
+        foreach (var c in s.Components.Where(c => c.FileName == "Sub.iam"))
+            c.BomStructure = "kInseparableBOMStructure";
+
+        var rows = Rollup.Apply(s, new RollupOptions
+        {
+            Mode = RollupMode.Flat,
+            IncludeAssemblies = false,
+            Inseparable = InseparableHandling.IncludeChildren
+        });
+
+        Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
 }

@@ -12,4 +12,35 @@ public static class SnapshotCollector
         var app = InventorConnection.GetRunningInventor();
         return new AssemblyTraverser().Traverse(app);
     }
+
+    /// <summary>
+    /// Reads Inventor's own Parts Only BOM: file path -> total quantity.
+    /// Note: enabling the BOM view can mark the assembly as modified (do not save it).
+    /// </summary>
+    public static Dictionary<string, int> ReadPartsOnlyBom()
+    {
+        var app = InventorConnection.GetRunningInventor();
+        var asm = (global::Inventor.AssemblyDocument)app.ActiveDocument;
+        var bom = asm.ComponentDefinition.BOM;
+        bom.PartsOnlyViewEnabled = true;
+
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (global::Inventor.BOMRow row in bom.BOMViews["Parts Only"].BOMRows)
+        {
+            int qty = int.TryParse(row.TotalQuantity, out int parsed) ? parsed : 0;
+
+            string key;
+            try
+            {
+                key = ((global::Inventor.Document)row.ComponentDefinitions[1].Document).FullFileName;
+            }
+            catch
+            {
+                key = "(unreadable BOM row)";
+            }
+
+            result[key] = (result.TryGetValue(key, out int existing) ? existing : 0) + qty;
+        }
+        return result;
+    }
 }

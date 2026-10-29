@@ -1,184 +1,64 @@
-﻿File Name,Qty,Part Number,Description,Material
-ChassisSub.iam,1,ChassisSub,,
-Chain Generator 6P (08x08x2.27).ipt,1,Chain Generator 6P (08x08x2.27),,Generic
-Shaft LS Capped 3.0.ipt,2,,STEP AP203,Steel ASTM A1008
-"6P 8T Sprocket, No Insert.iam",2,6P Sprocket,,
-RetainingFlexWheelInsert.ipt,3,RetainingFlexWheelInsert,,Generic
-adapted 106 bearing.iam,2,adapted 106 bearing,,
-TubePistonConnector.ipt,2,TubePistonConnector,,Generic
-RightLowerBlockPlate.ipt,1,RightLowerBlockPlate,,Generic
-Single Acting Piston.iam,2,Single Acting Piston,,
-LeftLowerBlockPlate.ipt,1,LeftLowerBlockPlate,,Generic
-LowerCrosssBraceLeft.ipt,2,LowerCrosssBraceLeft,,Generic
-UpperCrossBraceLeft.ipt,1,UpperCrossBraceLeft,,Generic
-Alu C 1x2x1x15.ipt,4,Alu C 1x2x1x35,,Generic
-UpperCrossBraceLeft_MIR.ipt,1,UpperCrossBraceLeft_MIR,,Generic
-LowerLeftTubeWall.ipt,1,LowerLeftTubeWall,,Generic
-1.625 30A .500.ipt,2,10.625 inch 30a - .25 thick,STEP AP214,Generic
-V5 Motor (No Cover).ipt<No Cover>,1,V5 Motor (No Cover),STEP AP214,Generic
-LowerRightTubeWall.ipt,1,LowerRightTubeWall,,Generic
-VerticalRollerStructure.ipt,1,VerticalRollerStructure,,Generic
-TubeAligner.ipt,1,TubeAligner,,Generic
-Shaft Collar No Screw.ipt,2,Shaft Collar Metal ,,Generic
-Double Acting Piston.iam,3,Double Acting Piston,,
-Piston Link V2.ipt,2,Piston Link V2,,Generic
-RightIntakeTopMount.ipt,1,RightIntakeTopMount,,Generic
-LeftIntakeTopMount.ipt,1,LeftIntakeTopMount,,Generic
-IntakeChainCover.ipt,1,IntakeChainCover,,Generic
-sizing cube 15in.ipt,1,sizing cube 15in,,Generic
-Block Red.ipt,7,276-9142-001_Instruction- Red,,Generic
-IntakeAssembly.iam,1,IntakeAssembly,,
-IntakeAssembly_MIR1.iam,1,IntakeAssembly_MIR1,,
-Shaft LS 4.5.ipt,1,,STEP AP203,Steel ASTM A1008
-Shaft Collar Star Smooth.ipt,2,Shaft Collar Star Smooth,,Generic
-Left Upper Tube Hinge Base PJ.ipt,1,Left Upper Tube Hinge Base PJ,,Generic
-Right Upper Tube Hinge Base PJ.ipt,1,Right Upper Tube Hinge Base PJ,,Generic
-Aligner.ipt,1,Aligner,,Generic
-Elbow.ipt,1,Elbow,,Generic
-Aligner Hinge.ipt,2,Aligner Hinge,,Generic
-HoodV2.ipt,1,HoodV2,,Generic
-LeftTubeMidBracket.ipt,1,LeftTubeMidBracket,,Generic
-RightTubeMidBracket.ipt,1,RightTubeMidBracket,,Generic
-EndTubeRing.ipt,1,EndTubeRing,,Generic
-Right Upper Tube Hinge.ipt,1,Right Upper Tube Hinge,,Generic
-Left Upper Tube Hinge.ipt,1,Left Upper Tube Hinge,,Generic
-LeftBlockTube.ipt,1,LeftBlockTube,,Generic
-RightBlockTube.ipt,1,RightBlockTube,,Generic
-Stick.ipt,1,Stick,,Generic
-StickDriveGear.ipt,1,StickDriveGear,,Generic
-StickDrivenGear.ipt,1,StickDrivenGear,,Generic
-wing bracket with flat face.ipt,1,wing bracket,,Generic
-wing piston mount.ipt,1,wing piston mount,,Generic
-wing.ipt,1,wing,,Generic
-piston end v2.ipt,1,piston end v2,,Generic
-stiffening plate.ipt,1,stiffening plate,,Generic
-linkage.ipt,1,linkage,,Generic
-odo.iam,2,odo,,
-Standoff .875.ipt,4,Standoff .5,,VEX Aluminum Alloy 5052-H32
-OdomMountRear.ipt,1,OdomMountRear,,Generic
-OdomMountRight.ipt,1,OdomMountRight,,Generic
-V5 Inertial Sensor.ipt,1,V5_Inertial_Sensor_276-4855,STEP AP203,Generic
-V5 Rotation Sensor.ipt,1,V5 Rotation Sensor,,Generic
-V5 Radio.ipt,1,V5 Radio,,Generic
-V5 Battery.ipt,1,V5_Robot_Battery_276-4811,STEP AP214,Generic
-V5 Brain.ipt,1,V5_Robot_Brain_276-4810,STEP AP214,Generic
-odo pods mounting block.ipt,1,odo pods mounting block,,Generic
-Robart Small Tank.ipt,2,Robart Small Tank,,Generic
-licence plate v1.2.ipt,2,licence plate v1.2,,Generic
-TankClamp.ipt,1,TankClamp,,Generic
-TankMountV2.ipt,1,TankMountV2,,Generic
-peter license plate holder v2.1.ipt,2,licence plate holder v2.1,,Generic
-Screw Head.ipt,67,Screw Head,,Generic
-SScrew Star Smooth 1.000.ipt,1,Screw 8-32 Steel 2.500,,VEX Steel
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-Coupler Star .5.ipt,1,Coupler Star 1,,VEX Steel
-RobotWiring.iam,1,RobotWiring,,
-MainSponsorPlate.ipt,1,MainSponsorPlate,,Generic
-FacePlate.ipt,1,FacePlate,,Generic
-FacePlate tankside.ipt,1,FacePlate,,Generic
-chassis shaft.iam,16,chassis shaft,,
-OmniAssembly.iam,1,OmniAssembly,,
-Omni Wheel Asm.iam,3,Omni Wheel Asm,,
-FRSled.ipt,1,FRSled,,Generic
-Idler Gear.ipt,6,Idler Gear,,Generic
-Traction Wheel Asm.iam,4,Traction Wheel Asm,,
-BRSled.ipt,1,BRSled,,Generic
-RightOuterPlate.ipt,1,RightOuterPlate,,Generic
-FLSled.ipt,1,FLSled,,Generic
-BLSled.ipt,1,BLSled,,Generic
-LeftOuterPlate.ipt,1,LeftOuterPlate,,Generic
-V5 Motor (No Cover).ipt<No Cover>,12,V5 Motor (No Cover),STEP AP214,Generic
-LeftMotorPlate.ipt,1,LeftMotorPlate,,Generic
-RightMotorPlate.ipt,1,RightMotorPlate,,Generic
-RearGaurd.ipt,1,RearGaurd,,Generic
-Alu C 1x2x1x26.ipt,1,Alu C 1x2x1x35,,Generic
-BlockScoopV2.ipt,1,BlockScoopV2,,Generic
-Front Left Chassis Strut.ipt,2,Front Left Chassis Strut,,Generic
-Alu C 1x2x1x6.ipt,2,Alu C 1x2x1x35,,Generic
-adapted 106 bearing.iam,2,adapted 106 bearing,,
-Shaft LS 4.5.ipt,1,,STEP AP203,Steel ASTM A1008
-Alu C 1x2x1x11.ipt,2,Alu C 1x2x1x35,,Generic
-Shaft HS 12.0 in.ipt,1,12_ High Strength Shaft (276-3524)-01,STEP AP203,Generic
-HSGear.ipt,2,HSGear,,Generic
-Right PTO Motor Mount.ipt,1,Right PTO Motor Mount,,Generic
-Left PTO Motor Mount.ipt,1,Left PTO Motor Mount,,Generic
-NCJ2B10-050.iam,2,NCJ2B10-050,,
-RightPTOShaftSupport.ipt,1,RightPTOShaftSupport,,Generic
-ShiftingGear.ipt,2,ShiftingGear,,Generic
-LeftPTOShaftSupport.ipt,1,LeftPTOShaftSupport,,Generic
-302 (1_4 ThunderSquare) ID x 0.875 OD x 0.280 WD (Flanged Bearing) (217-5830) .ipt,4,302 (1_4 ThunderSquare) ID x 0.875 OD x 0.280 WD (Flanged Bearing) (217-5830) ,STEP AP214,Generic
-LeftCapstanBrace.ipt,2,LeftCapstanBrace,,Generic
-CapstanLeftPlate.ipt,1,CapstanLeftPlate,,Generic
-CapstanRightPlate.ipt,1,CapstanRightPlate,,Generic
-PTOForkLeft.ipt,2,PTOForkLeft,,Generic
-Screw Head.ipt,32,Screw Head,,Generic
-SScrew Star Smooth 1.250.ipt,4,Screw 8-32 Steel 2.500,,VEX Steel
-SScrew Star Smooth .750.ipt,4,Screw 8-32 Steel 2.500,,VEX Steel
-SScrew Star Smooth .500.ipt,8,Screw 8-32 Steel 2.500,,VEX Steel
-BrainMount.ipt,1,BrainMount,,Generic
-BatteryMount.ipt,1,BatteryMount,,Generic
-Shaft LS 2.5.ipt,1,,STEP AP203,Steel ASTM A1008
-adapted 106 bearing.iam,1,adapted 106 bearing,,
-106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,Stainless Steel
-106 bearing insert.ipt,1,Bearing Insert,,Generic
-WheelBody.ipt,2,WheelBody,,Generic
-Roller.ipt,14,Roller,,Generic
-RollerShaft.ipt,14,RollerShaft,,"Steel, Chrome Plated"
-DriveGearV2.ipt,1,DriveGearV2,,Generic
-SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,VEX Steel
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-"2.75 Omni AS, No Insert.iam",1,6P Sprocket,,
-SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,VEX Steel
-DriveGear.ipt,1,DriveGear,,Generic
-2.75 Omni Antistatic.ipt,1,2.75 Omni Antistatic,,Generic
-"2.75 Traction AS, No Insert.iam",1,6P Sprocket,,
-SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,VEX Steel
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-DriveGear.ipt,1,DriveGear,,Generic
-2.75 Traction Antistatic.ipt,1,2.75 (220mm Travel) Anti-Static Wheel (276-8098),STEP AP203,Generic
-106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,Stainless Steel
-106 bearing insert.ipt,1,Bearing Insert,,Generic
-NCJ2B10-050.ipt,1,NCJ2B10-050,,Stainless Steel
-NCJ2B10-050_1.ipt,1,NCJ2B10-050,,Stainless Steel
-NCJ2B10-050_2.ipt,1,NCJ2B10-050,,Stainless Steel
-NCJ2B10-050_3.ipt,1,NCJ2B10-050,,Stainless Steel
-6P 8T Sprocket.ipt,1,276-8030-001 Rev3,STEP AP214,Generic
-106zz flanged bearing (6x10x3).ipt,1,106zz flanged bearing (6x10x3),STEP AP203,Stainless Steel
-106 bearing insert.ipt,1,Bearing Insert,,Generic
-Single Acting Piston Rod.ipt,1,Single Acting Piston Rod,,Generic
-Single Acting Piston Body.ipt,1,Single Acting Piston Body,,Generic
-Double Acting Piston Body.ipt,1,Double Acting Piston Body,,Generic
-Double Acting Piston Rod.ipt,1,Double Acting Piston Rod,,Generic
-ArmTop.ipt,1,ArmTop,,Generic
-2.000 30A .500.ipt,2,2 inch 60a - .5 thick,STEP AP214,Generic
-V5 Motor (No Cover).ipt<No Cover>,1,V5 Motor (No Cover),STEP AP214,Generic
-TWasher .375 OD x .04000.ipt,4,Teflon Washer-.04,,ABS Plastic
-IntakeForkSupportV2.ipt,1,IntakeForkSupportV2,,Generic
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-SScrew Star Smooth 1.500.ipt,1,Screw 8-32 Steel 2.500,,VEX Steel
-intake belt htd3.ipt,1,gt2 3mm pitch belt generator,,"Rubber, Black"
-gt2 intake pulley.ipt,2,23T HTD5 conveyor pulley,,Generic
-Shaft LS Capped 1.5.ipt,2,,STEP AP203,Steel ASTM A1008
-ArmTop_MIR1.ipt,1,ArmTop_MIR1,,Generic
-2.000 30A .500.ipt,2,2 inch 60a - .5 thick,STEP AP214,Generic
-V5 Motor (No Cover).ipt<No Cover>,1,V5 Motor (No Cover),STEP AP214,Generic
-TWasher .375 OD x .04000.ipt,4,Teflon Washer-.04,,ABS Plastic
-IntakeForkSupportV2_MIR.ipt,1,IntakeForkSupportV2_MIR,,Generic
-Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,Steel ASTM A1008 - Zinc Plated
-SScrew Star Smooth 1.500.ipt,1,Screw 8-32 Steel 2.500,,VEX Steel
-intake belt htd3.ipt,1,gt2 3mm pitch belt generator,,"Rubber, Black"
-gt2 intake pulley.ipt,2,23T HTD5 conveyor pulley,,Generic
-Shaft LS Capped 1.5.ipt,2,,STEP AP203,Steel ASTM A1008
-MGN7 x 50mm rail.ipt,1,MGN7 x 50 mm rail,STEP AP203,Stainless Steel
-MGN7 carrige.ipt,1,MGN7 carrige,STEP AP203,Stainless Steel
-V5 Rotation Sensor.ipt,1,V5 Rotation Sensor,,Generic
-odo shaft.iam,1,odo shaft,,
-HS Pillow Bearing Block.ipt,1,HS pillow bearing block,STEP AP203,"Acetal Resin, Black"
-odo-body.ipt,1,odo-body,,Generic
-SScrew Star Smooth 1.000.ipt,1,Screw 8-32 Steel 2.500,,VEX Steel
-2” Omni-Directional Wheel (276-9044).ipt,1,2” Omni-Directional Wheel (276-9044),STEP AP203,Generic
-Shaft HS 2.0 in.ipt,1,12_ High Strength Shaft (276-3524)-01,STEP AP203,Generic
-HSpacer .0625.ipt,3,Spacer High Strength,,"Acetal Resin, Black"
-M3x10mm.ipt,2,M3x10mm,STEP AP203,Generic
-m3 shaftcap washer.ipt,2,m3 shaftcap washer,,Generic
+﻿File Name,Qty,Part Number,Description,Mass
+chassis shaft.iam,16,chassis shaft,,0
+OmniAssembly.iam,1,OmniAssembly,,0
+Omni Wheel Asm.iam,3,Omni Wheel Asm,,0
+FRSled.ipt,1,FRSled,,0
+Idler Gear.ipt,6,Idler Gear,,0
+Traction Wheel Asm.iam,4,Traction Wheel Asm,,0
+BRSled.ipt,1,BRSled,,0
+RightOuterPlate.ipt,1,RightOuterPlate,,0
+FLSled.ipt,1,FLSled,,0
+BLSled.ipt,1,BLSled,,0
+LeftOuterPlate.ipt,1,LeftOuterPlate,,0
+V5 Motor (No Cover).ipt<No Cover>,12,V5 Motor (No Cover),STEP AP214,155.12859054000003
+LeftMotorPlate.ipt,1,LeftMotorPlate,,0
+RightMotorPlate.ipt,1,RightMotorPlate,,0
+RearGaurd.ipt,1,RearGaurd,,0
+Alu C 1x2x1x26.ipt,1,Alu C 1x2x1x35,,0
+BlockScoopV2.ipt,1,BlockScoopV2,,0
+Front Left Chassis Strut.ipt,2,Front Left Chassis Strut,,0
+Alu C 1x2x1x6.ipt,2,Alu C 1x2x1x35,,0
+adapted 106 bearing.iam,2,adapted 106 bearing,,0
+Shaft LS 4.5.ipt,1,,STEP AP203,0
+Alu C 1x2x1x11.ipt,2,Alu C 1x2x1x35,,0
+Shaft HS 12.0 in.ipt,1,12_ High Strength Shaft (276-3524)-01,STEP AP203,0
+HSGear.ipt,2,HSGear,,0
+Right PTO Motor Mount.ipt,1,Right PTO Motor Mount,,0
+Left PTO Motor Mount.ipt,1,Left PTO Motor Mount,,0
+NCJ2B10-050.iam,2,NCJ2B10-050,,57.12481893980744
+RightPTOShaftSupport.ipt,1,RightPTOShaftSupport,,0
+ShiftingGear.ipt,2,ShiftingGear,,0
+LeftPTOShaftSupport.ipt,1,LeftPTOShaftSupport,,0
+302 (1_4 ThunderSquare) ID x 0.875 OD x 0.280 WD (Flanged Bearing) (217-5830) .ipt,4,302 (1_4 ThunderSquare) ID x 0.875 OD x 0.280 WD (Flanged Bearing) (217-5830) ,STEP AP214,0
+LeftCapstanBrace.ipt,2,LeftCapstanBrace,,0
+CapstanLeftPlate.ipt,1,CapstanLeftPlate,,0
+CapstanRightPlate.ipt,1,CapstanRightPlate,,0
+PTOForkLeft.ipt,2,PTOForkLeft,,0
+Screw Head.ipt,35,Screw Head,,0
+SScrew Star Smooth 1.250.ipt,4,Screw 8-32 Steel 2.500,,0
+SScrew Star Smooth .750.ipt,4,Screw 8-32 Steel 2.500,,0
+SScrew Star Smooth .500.ipt,8,Screw 8-32 Steel 2.500,,0
+BrainMount.ipt,1,BrainMount,,0
+BatteryMount.ipt,1,BatteryMount,,0
+Shaft LS 2.5.ipt,1,,STEP AP203,0
+adapted 106 bearing.iam,1,adapted 106 bearing,,0
+WheelBody.ipt,2,WheelBody,,0
+Roller.ipt,14,Roller,,0
+RollerShaft.ipt,14,RollerShaft,,0
+DriveGearV2.ipt,1,DriveGearV2,,0
+SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,0
+Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,1.5158060485894695
+Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,1.5158060485894695
+"2.75 Omni AS, No Insert.iam",1,6P Sprocket,,0
+SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,0
+DriveGear.ipt,1,DriveGear,,0
+2.75 Omni Antistatic.ipt,1,2.75 Omni Antistatic,,0
+"2.75 Traction AS, No Insert.iam",1,6P Sprocket,,0
+SScrew Star Smooth 1.000.ipt,2,Screw 8-32 Steel 2.500,,0
+Nut Thin Nylock.ipt,2,Nut 8-32 THIN Nylock,Nylock nuts have internal nylon lock.,1.5158060485894695
+DriveGear.ipt,1,DriveGear,,0
+2.75 Traction Antistatic.ipt,1,2.75 (220mm Travel) Anti-Static Wheel (276-8098),STEP AP203,0
+NCJ2B10-050.ipt,1,NCJ2B10-050,,0
+NCJ2B10-050_1.ipt,1,NCJ2B10-050,,0
+NCJ2B10-050_2.ipt,1,NCJ2B10-050,,0
+NCJ2B10-050_3.ipt,1,NCJ2B10-050,,0
