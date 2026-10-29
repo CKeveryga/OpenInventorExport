@@ -11,6 +11,8 @@ public enum InseparableHandling { AsSingleItem, IncludeChildren }
 public class RollupOptions
 {
     public RollupMode Mode { get; set; } = RollupMode.Flat;
+    /// <summary>Adds the top-level assembly (Level 0) as a row with qty 1. Off by default because Inventor's BOM does not list it.</summary>
+    public bool IncludeRoot { get; set; } = false;
     public bool IncludeAssemblies { get; set; } = true;
     public bool ExcludePhantom { get; set; } = true;
     public bool ExcludeReference { get; set; } = true;
@@ -65,7 +67,7 @@ public static class Rollup
             && inseparable == InseparableHandling.AsSingleItem;
 
         var candidates = snapshot.Components
-            .Where(c => c.Level > 0)
+            .Where(c => c.Level > 0 || options.IncludeRoot)
             .Where(c => !(options.ExcludePhantom && c.BomStructure == "kPhantomBOMStructure"))
             .Where(c => !(options.ExcludeReference && c.BomStructure == "kReferenceBOMStructure"))
             .Where(c => !(options.ExcludeSuppressed && c.IsSuppressed))

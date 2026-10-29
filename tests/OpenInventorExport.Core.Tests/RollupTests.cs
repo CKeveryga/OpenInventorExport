@@ -132,4 +132,38 @@ public class RollupTests
 
         Assert.Contains(rows, r => r.Component.FileName == "Bolt.ipt");
     }
+
+    [Fact]
+    public void Root_IsExcludedByDefault()
+    {
+        var rows = Rollup.Apply(Sample(), new RollupOptions { Mode = RollupMode.Occurrence });
+        Assert.DoesNotContain(rows, r => r.Component.Level == 0);
+    }
+
+    [Fact]
+    public void IncludeRoot_AddsTopLevelAssemblyWithQtyOne_EvenWhenAssembliesAreExcluded()
+    {
+        var rows = Rollup.Apply(Sample(), new RollupOptions
+        {
+            Mode = RollupMode.Flat,
+            IncludeAssemblies = false,
+            IncludeRoot = true
+        });
+
+        Assert.Equal(1, rows.Single(r => r.Component.FileName == "Top.iam").Quantity);
+        Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity); // unchanged
+    }
+
+    [Fact]
+    public void IncludeRoot_Structured_KeepsChildGroupingIntact()
+    {
+        var rows = Rollup.Apply(Sample(), new RollupOptions
+        {
+            Mode = RollupMode.Structured,
+            IncludeRoot = true
+        });
+
+        Assert.Equal(4, rows.Count);                          // root + Sub + Bolt + Plate
+        Assert.Equal(6, rows.Sum(r => r.Quantity));           // previous 5 + root
+    }
 }
