@@ -9,6 +9,23 @@ public class AssemblyTraverser
 {
     private readonly Snapshot _snapshot = new();
 
+    private static string ClassifyKind(Inv.ComponentOccurrence occ)
+    {
+        try
+        {
+            return occ.Definition.Type switch
+            {
+                Inv.ObjectTypeEnum.kPartComponentDefinitionObject => "Part",
+                Inv.ObjectTypeEnum.kSheetMetalComponentDefinitionObject => "SheetMetal",
+                Inv.ObjectTypeEnum.kAssemblyComponentDefinitionObject => "Assembly",
+                Inv.ObjectTypeEnum.kWeldmentComponentDefinitionObject => "Assembly",
+                Inv.ObjectTypeEnum.kVirtualComponentDefinitionObject => "Virtual",
+                var other => other.ToString()
+            };
+        }
+        catch { return "Unknown"; }
+    }
+
     public Snapshot Traverse(Inv.Application app)
     {
         if (app.ActiveDocument is not Inv.AssemblyDocument asm)
@@ -56,19 +73,14 @@ public class AssemblyTraverser
                         ParentPath = parentPath,
                         FileName = SafeName(occ),
                         Level = level,
-                        IsSuppressed = true
+                        IsSuppressed = true,
+                        DocumentType = ClassifyKind(occ)
                     };
                     try { sup.BomStructure = occ.BOMStructure.ToString(); } catch { }
                     try
                     {
                         sup.FullPath = occ.ReferencedDocumentDescriptor.FullDocumentName;
                         sup.FileName = Path.GetFileName(sup.FullPath);
-                    }
-                    catch { }
-                    try
-                    {
-                        sup.DocumentType = occ.DefinitionDocumentType ==
-                            Inv.DocumentTypeEnum.kAssemblyDocumentObject ? "Assembly" : "Part";
                     }
                     catch { }
 
@@ -78,59 +90,40 @@ public class AssemblyTraverser
                     continue;
                 }
 
+                string kind = ClassifyKind(occ);
+                bool isVirtual = kind == "Virtual";
+
                 var rec = new ComponentRecord
                 {
                     OccurrencePath = path,
+                    ParentPath = parentPath,
                     Level = level,
                     IsSuppressed = false,
-                    IsVirtual = occ.Definition is Inv.VirtualComponentDefinition,
+                    IsVirtual = isVirtual,
                     BomStructure = occ.BOMStructure.ToString(),
-                    ParentPath = parentPath
+                    DocumentType = kind,
+                    FileName = SafeName(occ)   // fallback; overwritten for real files
                 };
 
-                rec.DocumentType = occ.DefinitionDocumentType switch
-                {
-                    Inv.DocumentTypeEnum.kPartDocumentObject => "Part",
-                    Inv.DocumentTypeEnum.kAssemblyDocumentObject => "Assembly",
-                    var other => other.ToString()
-                };
-
-                if (!rec.IsVirtual)
+                if (!isVirtual)
                 {
                     try
                     {
                         rec.FullPath = occ.ReferencedDocumentDescriptor.FullDocumentName;
                         rec.FileName = Path.GetFileName(rec.FullPath);
-
-                        if (occ.Definition.Type == Inv.ObjectTypeEnum.kSheetMetalComponentDefinitionObject)
-                            rec.SubType = "SheetMetal";
-                        else if (occ.Definition is Inv.VirtualComponentDefinition)
-                            rec.SubType = "Virtual";
                     }
                     catch
                     {
-                        rec.FileName = SafeName(occ);
-                        AddSkipped(path, SkipReason.FileMissing,
-                            "Could not resolve the referenced file");
+                        AddSkipped(path, SkipReason.FileMissing, "Could not resolve the referenced file");
                     }
 
                     if (occ.Definition.Document is Inv.Document doc)
                         ReadProperties(doc, rec);
                 }
-                else
-                {
-                    //rec.FileName = SafeName(occ);
-
-                    rec.SubType = "Virtual";
-                    int subCount = 0;
-                    try { subCount = occ.SubOccurrences.Count; } catch { }
-                    rec.DocumentType = subCount > 0 ? "Assembly" : "Part";
-                }
 
                 _snapshot.Components.Add(rec);
 
-                // Recurse into sub-assemblies
-                if (occ.DefinitionDocumentType == Inv.DocumentTypeEnum.kAssemblyDocumentObject)
+                if (kind == "Assembly")
                 {
                     var subs = occ.SubOccurrences;
                     var subList = new List<Inv.ComponentOccurrence>();
