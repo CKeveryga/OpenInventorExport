@@ -1,13 +1,35 @@
-# Inventor Export Tool — Project Guide
+# OpenInventorExport — Project Guide
 
-> This file is the source of truth for Claude (and any human contributor) working on this project.
-> Read it fully before suggesting code or architecture. Update it whenever a decision changes.
+> Source of truth for Claude (and any human contributor). Read fully before suggesting code or architecture.
+> Update whenever a decision changes. **Last updated: end of milestone 2 (traverse + rollup + CSV validated).**
+
+---
+
+## 0. Where we are right now (read this first)
+
+**Status:** Milestones 0–2 are done and validated against real Inventor 2027 data.
+
+- Repo: `OpenInventorExport` (GitHub), local path `C:\dev\OpenInventorExport`. Solution file is in the repo root.
+- Latest tag: `v0.2-csv`. `main` is buildable; work happens on short-lived feature branches.
+- **Validation result (the key proof):** on a real multi-level assembly (552 occurrences, 68 sub-assembly occurrences, 18 unique assemblies, 159 unique files) the tool reproduced Inventor's own BOM exactly:
+  - Flat / parts-only qty: **482 = Inventor "Parts Only" BOM**
+  - Structured qty: **424 = Inventor "Structured" BOM**
+- The owner also built an **edge-case test assembly** (virtual components, a pattern, one of every BOM structure type; no Content Center because the trial doesn't include it). **Its output has not been analyzed yet**: run the CLI against it and review `Skipped` and the summary first.
+
+**Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; owner should confirm the exact date). After it expires nothing that needs Inventor can be run or tested. **Prioritize Inventor-dependent work first** (file-export translators, property read/write, edge cases). Pure-Core work (config format, rules engine, XLSX/SQLite writers, config editor UI) can be built after the trial from saved snapshots.
+
+**Next up (suggested order):**
+1. Analyze the edge-case assembly output (suppressed/virtual/phantom/reference/inseparable handling; fix traverser gaps).
+2. **File export tasks (roadmap #7):** PDF/DWG/DXF from drawings, STEP from models, via Inventor translators; task list + log. Needs a test `.idw` drawing for at least a few parts.
+3. Custom property read/write and schema validation (roadmap #4).
+4. Save sanitized snapshots from every test assembly as fixtures for post-trial development.
+5. Later (no Inventor needed): config file format, rules engine, XLSX/SQLite, config editor.
 
 ---
 
 ## 1. Purpose
 
-An open-source tool that exports Autodesk Inventor assemblies into **reliable, table-based component lists** (BOM-style) plus the **associated files** (drawings, models, neutral formats).
+An open-source tool that exports Autodesk Inventor assemblies into **reliable, table-based component lists** plus the **associated files** (drawings, models, neutral formats).
 
 **Why it exists:** Inventor's built-in export misses components depending on component state (suppressed, virtual, etc.), level of detail / model state, configuration, and other factors. This tool traverses the assembly itself and is explicit about what it includes and why.
 
@@ -17,35 +39,32 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
 
 ## 2. About the project owner (how Claude should behave)
 
-- The owner is an experienced Inventor user and has built something similar before, but is **not a software engineer**.
+- Experienced Inventor user, **not a software engineer**. Learning git, C#, and the Inventor API as we go.
 - Claude acts as **architect and mentor**, not just a code generator:
-  - Explain *why* before *how*. Keep explanations short and plain-language.
-  - Prefer the simplest approach that works. Push back on over-engineering.
-  - Work in **small, testable steps**. Never dump a whole application at once.
-  - Tell the owner exactly which file to create/edit and where it goes.
-  - Flag risks early (licensing, Inventor API quirks, scope creep).
-  - When the owner proposes something that will cause pain later, say so kindly and offer an alternative.
-  - Remind the owner to commit to git at sensible checkpoints.
-  - Define jargon the first time it is used.
-- **Only use code the owner wrote or has the rights to.** Do not copy code belonging to a previous employer or any third party into this repo. Code the owner authored themselves is fine to bring in.
+  - Explain *why* before *how*; short, plain language; define jargon on first use.
+  - Prefer the simplest approach that works; push back on over-engineering.
+  - Work in **small, testable steps**; say exactly which file to create/edit and where it goes.
+  - Flag risks early (licensing, Inventor API quirks, scope creep, the trial deadline).
+  - **Be honest when writing Inventor API calls from memory** (member names may not compile first try); ask for the exact error code and line when something fails.
+  - Remind the owner to commit/push at sensible checkpoints. (Commit ≠ push: push uploads to GitHub.)
+- **Only use code the owner wrote or has the rights to.** Do not copy code belonging to a previous employer or any third party into this repo.
+- The owner works in **Visual Studio 2022 (Windows)** and pastes exact error text/screenshots; CS error codes are the fastest way to diagnose.
+- Never commit Inventor sample/third-party model files. Test assemblies stay outside the repo; commit only sanitized `snapshot.json` fixtures (no usernames in paths) or the owner's own tiny hand-built models.
 
 ---
 
 ## 3. Scope
 
 ### In scope
-1. **Collect** — traverse an Inventor assembly and gather every occurrence with configured properties.
-2. **Export tables** — CSV, XLSX, database (SQLite first), JSON; extensible to others.
-3. **Export files** — per component: DWG, DXF, STEP, PDF, others via a task system.
-4. **Property schema configuration** — define custom iProperties (name, type, default, where they live) and apply/validate them in Inventor.
-5. **Export configuration** — define how many exports, what each contains, rules for inclusion, file naming, destinations.
-6. **Rules engine** — include/exclude/route components based on model type, file name, and properties.
+1. **Collect:** traverse an Inventor assembly and gather every occurrence with configured properties.
+2. **Export tables:** CSV (done), XLSX, SQLite database, JSON; extensible.
+3. **Export files:** per component DWG, DXF, STEP, PDF, others via a task system.
+4. **Property schema configuration:** define custom iProperties (name, type, default, where they live) and apply/validate them in Inventor.
+5. **Export configuration:** how many exports, what each contains, rules, file naming, destinations.
+6. **Rules engine:** include/exclude/route components by model type, file name, properties.
 
 ### Out of scope (for now)
-- Vault / PDM integration (design so it can be added later)
-- Cloud/web hosting
-- Non-Windows platforms (Inventor is Windows-only)
-- Editing geometry
+Vault/PDM integration (design so it can be added), cloud/web hosting, non-Windows platforms, editing geometry.
 
 ---
 
@@ -55,217 +74,194 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
 
 | Concern | Decision | Reason |
 |---|---|---|
-| Language | **C#** | Best-supported Inventor API language, strong tooling |
-| Runtime | **Multi-target.** Inventor 2024 and older run add-ins on .NET Framework 4.8; Inventor 2025+ runs add-ins on .NET 8 (2027 keeps .NET 8 add-ins working without recompiling). `InvExport.Core` targets `netstandard2.0` (loads in both). `InvExport.Inventor` and `InvExport.AddIn` multi-target `net48` and `net8.0-windows`. `InvExport.Cli` is an out-of-process exe and is not tied to Inventor's .NET version | A single .NET Framework 4.8 add-in is not reliable on 2025+ (not fully compatible with .NET 8), so one build cannot cover all versions |
-| Supported versions | **Inventor 2023 and newer** (decided). 2023–2024 use the `net48` build; 2025+ use the `net8.0-windows` build. Do not add older versions without a written decision in `docs/decisions/` | Each version added multiplies testing; 2023 already includes Model States |
-| IDE | Visual Studio Community (free) | Add-in templates, debugging attached to Inventor |
-| Config format | **JSON** files + JSON Schema | Human-readable, diffable in git, shareable |
-| XLSX writer | **ClosedXML** (MIT) | Do not use EPPlus (restrictive license for an open-source project) |
-| Database | **SQLite** first (Microsoft.Data.Sqlite), others later | Zero setup |
-| Config UI | **WPF desktop app** (separate from Inventor) | Windows-only anyway; mature; works without Inventor running |
-| Tests | xUnit | Standard |
-| License | **MIT or Apache-2.0** (decide before first public commit) | Permissive, open-source friendly |
+| Language | **C#** | Best-supported Inventor API language |
+| Supported Inventor versions | **2023 and newer** (decided). 2023–2024 = `net48` build; 2025+ = `net8.0-windows` build. Do not add older versions without a written decision in `docs/decisions/` | Each version multiplies testing |
+| Runtime strategy | `OpenInventorExport.Core` targets `netstandard2.0`. `OpenInventorExport.Inventor` is meant to multi-target `net48;net8.0-windows`. **CURRENT STATE: Inventor project is `net8.0-windows` only**, because the owner only has 2027 (trial). **`net48` has NOT been built or tested** and must be re-added and tested when 2023/2024 is available. The Interop reference for older versions may differ | A single net48 add-in is unreliable on 2025+; one build can't cover all |
+| Process model | **CLI (out-of-process) is the primary engine**; the add-in is a thin launcher later. CLI currently targets `net8.0-windows` | External exe isn't tied to Inventor's .NET version |
+| IDE | Visual Studio 2022 Community | |
+| Config format | JSON files + JSON Schema | Diffable, human-readable |
+| JSON | `System.Text.Json` (NuGet in Core), enums as strings | |
+| XLSX writer | **ClosedXML** (MIT). Do not use EPPlus | Licensing |
+| Database | SQLite first (`Microsoft.Data.Sqlite`) | Zero setup |
+| Config UI | WPF desktop app (separate from Inventor) | |
+| Tests | xUnit (net8.0) | |
+| License | MIT or Apache-2.0 (confirm what is in the repo) | |
 
 ### 4.2 Shape of the system
 
-Three layers, kept strictly separate:
-
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  FRONT ENDS (thin — no business logic)                       │
-│  • Inventor Add-in  (ribbon button: "Run Export")            │
-│  • Config Editor    (WPF app: edit export + property config) │
-│  • CLI runner       (headless / batch / scheduled)           │
+│  FRONT ENDS (thin, no business logic)                        │
+│  • CLI runner (exists)  • Inventor Add-in (later)            │
+│  • Config Editor WPF (later)                                 │
 └───────────────┬──────────────────────────────────────────────┘
-                │
 ┌───────────────▼──────────────────────────────────────────────┐
-│  INVENTOR ADAPTER (only layer that touches Inventor API)     │
-│  • AssemblyTraverser   • PropertyReader/Writer               │
-│  • Translators (DWG/DXF/STEP/PDF exporters)                  │
+│  OpenInventorExport.Inventor (ONLY layer touching Inventor)  │
+│  InventorConnection, AssemblyTraverser, SnapshotCollector    │
+│  (facade), InventorProbe; later: property read/write,        │
+│  translators                                                 │
 └───────────────┬──────────────────────────────────────────────┘
-                │ produces / consumes plain data objects
 ┌───────────────▼──────────────────────────────────────────────┐
-│  CORE (pure C#, NO Inventor references, fully unit-testable) │
-│  • Config models + validation   • Rules engine               │
-│  • Snapshot model (components)  • Table writers (CSV/XLSX/DB)│
-│  • Export task planning/queue                                │
+│  OpenInventorExport.Core (pure C#, NO Inventor references)   │
+│  Model, SnapshotJson, SnapshotSummary, Rollup, CsvTableWriter│
+│  later: config models, rules engine, XLSX/SQLite, task plan  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Key rule:** `Core` must never reference `Autodesk.Inventor.Interop`. This is what makes the project testable and keeps it maintainable.
+**Key rules:**
+- `Core` never references `Autodesk.Inventor.Interop`.
+- **No Inventor types may appear in public signatures outside the Inventor project.** Exposing them to the CLI caused compiler error CS0012 (missing assembly reference). Use facade methods (e.g. `SnapshotCollector.CollectFromRunningInventor()`) that return Core types only.
 
 ### 4.3 Two-phase pipeline (non-negotiable)
 
-1. **Phase 1 — Collect.** Traverse the assembly, read all configured properties, produce an in-memory **Snapshot** (list of `ComponentRecord`s plus a list of `SkippedRecord`s with reasons). Can be saved as `snapshot.json`.
-2. **Phase 2 — Export.** From the Snapshot only (no more traversal): apply rules → write tables → plan and run file-export tasks.
+1. **Collect:** traverse the assembly once, produce a `Snapshot` (components + skipped list with reasons), saved as `snapshot.json`.
+2. **Export:** from the Snapshot only: apply rollup/rules, write tables, plan and run file-export tasks.
 
-Why: the snapshot can be saved, diffed, reviewed, and used in tests *without Inventor installed*. Table export bugs and traversal bugs become separable.
+The snapshot is the test fixture mechanism: Core can be developed and tested without Inventor.
 
-### 4.4 Where configuration lives
+### 4.4 Quantity rollup (implemented, validated)
 
-Two config domains, both JSON, both stored in a user-chosen folder (ideally inside a git repo or shared drive):
+Rollup is a **Core transformation on the snapshot**, never done during traversal. Modes (`RollupMode`):
+- `Occurrence`: one row per occurrence, qty 1.
+- `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain** (not just its file), so the same sub-assembly under two different parents lists its children under each. (An earlier version keyed parents by file only and came out 4 short vs Inventor.)
+- `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels.
 
-- **`properties.schema.json`** — the *Inventor property configuration*: which custom iProperties exist, their data types, defaults, which document types they apply to, required/optional, mapping/aliases.
-- **`exports/*.export.json`** — one file per *export definition*: sources, columns, rules, file outputs, destinations.
+`RollupOptions`: `Mode`, `IncludeAssemblies`, `ExcludePhantom` (default true), `Key` (default: full path/file name; later configurable, e.g. Part Number). Planned: conflict rule when rows with the same key differ in other columns (first / join / flag). The Level 0 root is the thing exported and is excluded from rows.
 
-The **Config Editor (WPF)** edits these files. The **Add-in** and **CLI** only *read* them and run. This keeps the Inventor add-in tiny.
+### 4.5 Configuration (not built yet)
 
----
-
-## 5. Domain model (starting point — refine as we go)
-
-```
-ComponentRecord
-  Id (stable, e.g. full occurrence path)
-  OccurrencePath        // "Top/Sub1:1/Part7:2"
-  FileName, FullPath
-  DocumentType          // Part, Assembly, Drawing(n/a), Presentation
-  SubType               // SheetMetal, Weldment, iPart, Content Center, Virtual, Derived…
-  Quantity
-  Level                 // depth in tree
-  ParentId
-  State                 // Suppressed, Visible, Virtual, Reference, etc.
-  Properties            // Dictionary<string, PropertyValue>
-  AssociatedFiles       // resolved drawing path, etc.
-
-SkippedRecord
-  OccurrencePath, Reason (enum + text)
-
-PropertyDefinition
-  Name, PropertySet (Summary / DocSummary / Design Tracking / User Defined)
-  DataType (Text, Number, Date, Boolean)
-  Default, Required, AppliesTo (doc types), Format
-
-ExportDefinition
-  Name, Enabled
-  Source (assembly path or "active document")
-  TraversalOptions (levels, suppressed handling, virtual handling, model state…)
-  Columns (property → header, order, formatting)
-  Rules[] (conditions → include/exclude/route/override)
-  TableOutputs[] (csv, xlsx, sqlite…, with destination + naming)
-  FileOutputs[] (dwg, dxf, step, pdf…, with rules, naming, destination)
-
-Rule
-  Conditions: model type, file name (glob/regex), property comparisons (equals, contains, empty, etc.)
-  Action: Include | Exclude | Tag | RouteToOutput(name)
-```
+- `properties.schema.json`: custom iProperty definitions.
+- `exports/*.export.json`: one per export definition (traversal options, columns, rules, rollup, outputs, destinations).
+- Config Editor edits these; CLI/add-in read them.
+- Currently CSV columns and rollup options are **hard-coded in the CLI's `Program.cs`** (`Part Number, Description, Material`). Replacing that with config is milestone 3.
 
 ---
 
-## 6. Inventor API considerations (read before writing traversal code)
-
-These are the usual reasons exports "miss components" and must be handled **explicitly and configurably**:
-
-- **Suppressed components** — include/exclude option; always log.
-- **Level of Detail / Model State / Representations** — traversal result depends on the active state. Make the state an explicit config option and record which was used in the output.
-- **Virtual components** — no file on disk; have properties but no path.
-- **Content Center / standard parts, iParts, iAssemblies** — members vs factories; filename ≠ part number.
-- **Reference / phantom / derived components** — decide per export.
-- **Patterns and sub-assembly instances** — quantity counting (same file, many occurrences).
-- **Weldments, frame members, sheet metal** — special subtypes with extra properties.
-- **Referenced documents not loaded / missing** — report as `SkippedRecord`, never crash.
-- **Drawings are not discoverable from the model.** A drawing references a model, not the other way. Drawing association needs a configurable strategy: same-name-in-same-folder, search paths, naming rules, or (later) Vault.
-- **Property sets** — Summary Information, Document Summary, Design Tracking, User Defined (custom). Custom properties are typed; reading blindly as text causes bad data.
-- **Parameter-linked properties** — a custom property can be linked to a parameter; handle read-only/linked cases.
-- **COM object lifetime** — release COM references; avoid holding large collections; test on large assemblies.
-- **Performance** — opening documents is slow. Consider Apprentice Server for read-only collection (note: verify what it can/can't do before relying on it). Open documents invisibly where possible.
-- **Add-in vs. out-of-process** — add-in runs inside Inventor (fast, simple UI hooks). CLI/standalone connects to a running Inventor via COM.
-- **Translators** — DWG/DXF/STEP/PDF use Inventor's translator add-ins with option maps (`NameValueMap`). Each format needs its own options in config.
-- **The Inventor interop DLL** (`Autodesk.Inventor.Interop.dll`) ships with Inventor. **Do not commit it to the repo.** Reference it from the install path (via a build property) and document this in the README.
-
----
-
-## 7. Repository layout
+## 5. Current code map
 
 ```
-InventorExportTool/
-├─ README.md                  # what it is, how to build, how to use
-├─ CLAUDE.md                  # this file
-├─ LICENSE
-├─ .gitignore                 # Visual Studio / .NET template
-├─ docs/
-│  ├─ decisions/              # short "ADR" notes: why we chose X
-│  └─ config-reference.md
+OpenInventorExport/               (repo root; .sln here)
+├─ CLAUDE.md, README.md, LICENSE, .gitignore
+├─ Directory.Build.props          # InventorPublicAssemblies path (default: C:\Program Files\Autodesk\Inventor 2027\Bin\Public Assemblies)
 ├─ src/
-│  ├─ InvExport.Core/         # pure C#: models, rules, writers, task planner
-│  ├─ InvExport.Inventor/     # Inventor adapter: traversal, properties, translators
-│  ├─ InvExport.AddIn/        # Inventor add-in front end
-│  ├─ InvExport.Cli/          # command-line runner
-│  └─ InvExport.ConfigEditor/ # WPF configuration UI
+│  ├─ OpenInventorExport.Core/        netstandard2.0, Nullable on. NO implicit usings (add explicit usings)
+│  │   Model.cs                   # PropertyDataType, SkipReason, PropertyValue, ComponentRecord, SkippedRecord, Snapshot
+│  │   SnapshotJson.cs            # indented JSON, enums as strings
+│  │   SnapshotSummary.cs         # counts by DocumentType/BomStructure/Virtual (+ unique files, if added)
+│  │   Rollup.cs                  # RollupMode, RollupOptions, ExportRow, Rollup.Apply
+│  │   CsvTableWriter.cs          # CSV with proper escaping
+│  ├─ OpenInventorExport.Inventor/    net8.0-windows (net48 pending), ImplicitUsings on
+│  │   InventorConnection.cs      # P/Invoke GetActiveObject (Marshal.GetActiveObject doesn't exist in modern .NET)
+│  │   AssemblyTraverser.cs       # recursive walk -> Snapshot
+│  │   SnapshotCollector.cs       # facade used by the CLI
+│  │   InventorProbe.cs           # connection test
+│  └─ OpenInventorExport.Cli/         net8.0-windows exe
+│      Program.cs                 # collect -> write snapshot.json -> rollup -> CSV; prints validation numbers
 ├─ tests/
-│  ├─ InvExport.Core.Tests/
-│  └─ InvExport.Inventor.Tests/   # manual/integration (needs Inventor)
-├─ samples/
-│  ├─ configs/                # example property + export configs
-│  └─ snapshots/              # example snapshot.json files
-└─ schemas/                   # JSON Schema for config files
+│  └─ OpenInventorExport.Core.Tests/  xUnit: snapshot round-trip, rollup (occurrence/flat/structured/ancestor-chain), CSV escaping
+├─ output/                        # git-ignored: snapshots and CSVs
+└─ docs/, samples/, schemas/      # planned
 ```
+
+CLI usage: first argument = output path for `snapshot.json` (CSV is written next to it with `.csv`). In Visual Studio set it under project Properties > Debug > launch profiles > command line arguments; or `dotnet run --project src\OpenInventorExport.Cli -- <path>`. Inventor must be running with the assembly as the **active document**.
 
 ---
 
-## 8. Roadmap (build in this order)
+## 6. Domain model (as implemented)
 
-Each milestone should be working, committed, and tagged before the next begins.
+```
+Snapshot: SchemaVersion, CreatedUtc, InventorVersion, SourceFile, ModelState, Components[], Skipped[]
 
-| # | Milestone | Done when |
+ComponentRecord: OccurrencePath, ParentPath, FileName, FullPath, DocumentType (Part/Assembly/...),
+  SubType (SheetMetal/Virtual/...), Quantity, Level, IsSuppressed, IsVirtual, BomStructure,
+  Properties: Dictionary<string, PropertyValue>
+
+PropertyValue: DataType (Text/Number/Date/Boolean), Value (string?, invariant culture; dates ISO "yyyy-MM-ddTHH:mm:ss"; Inventor's 1601 "empty date" -> null)
+
+SkippedRecord: OccurrencePath, Reason (Suppressed, Virtual, ReferenceOnly, FileMissing, Error, ExcludedByRule), Detail
+```
+
+`OccurrencePath` is a string built from occurrence names (e.g. `Top.iam/Sub:1/Bolt:3`); an **occurrence is not a file**: one `.ipt` can be many occurrences. `FullPath` comes from `occ.ReferencedDocumentDescriptor.FullDocumentName`.
+
+Traverser currently: records suppressed occurrences in `Skipped` (reason Suppressed) and does not recurse into them; flags virtual components via `occ.Definition is VirtualComponentDefinition`; records `BomStructure` (`kNormalBOMStructure`, `kPhantomBOMStructure`, ...); sets SubType for sheet metal; reads Design Tracking + User Defined property sets (all properties, ~60 per component, noisy; configurable column selection is the next fix); wraps each occurrence in try/catch so one bad component never aborts the run (reason Error).
+
+---
+
+## 7. Inventor API knowledge and gotchas (learned so far)
+
+- Inventor collections are **1-indexed**.
+- Interop interface types need **explicit casts**: `AssemblyDocument` → `Document` (error CS1503 otherwise).
+- Our namespace `OpenInventorExport.Inventor` collides with Autodesk's `Inventor` namespace: always alias `using Inv = global::Inventor;`.
+- The interop DLL (`Autodesk.Inventor.Interop.dll`) is referenced by `HintPath` from the install folder via `Directory.Build.props`; **never commit it**. A plain `<Reference>` does **not** flow to dependent projects (hence the facade rule).
+- Model state lookup works: `asm.ComponentDefinition.ModelStates.ActiveModelState.Name` returned `[Primary]` on 2027.
+- `BOMStructure` values matter: **Phantom** parts are excluded from Inventor's Parts Only BOM (the tool matched Inventor by excluding them); Reference and Inseparable still need handling (Inseparable assemblies: Inventor's BOM hides children; our traversal currently walks into them; make this a traversal option, and record what was done).
+- Inventor's **Structured BOM lists each unique sub-assembly's contents once per distinct parent chain**, with qty = count within that parent. **Parts Only** multiplies through levels. Don't compare raw occurrence counts to either.
+- Property gotchas: Windows "empty date" is 1601-01-01; values are `object`; read per property set (`Design Tracking Properties`, `Inventor User Defined Properties`).
+- **Not yet verified:** Content Center / iPart/iAssembly member names (`FullDocumentName` may include a `<member>` suffix that breaks `Path.GetFileName`); virtual components' real behavior in the edge-case model; Reference BOM handling; quantity overrides in Inventor's BOM; multiple model states/LOD; files that fail to resolve; patterns; performance on large assemblies; COM object release.
+- **Drawings are not discoverable from the model** (a drawing references a model, not vice versa). Needs a configurable association strategy (same-name-in-same-folder, search paths, naming rules; Vault later).
+- Translators (DWG/DXF/STEP/PDF) use Inventor translator add-ins with `NameValueMap` option maps; each format needs its own options in config.
+
+---
+
+## 8. Roadmap
+
+| # | Milestone | Status |
 |---|---|---|
-| 0 | **Repo + solution skeleton** | Builds empty; README, LICENSE, .gitignore committed |
-| 1 | **Traverse & dump** | CLI/add-in walks active assembly, writes `snapshot.json` incl. skipped list |
-| 2 | **Basic CSV export** | Snapshot → CSV with hardcoded columns |
-| 3 | **Config file v1** | Columns + traversal options come from JSON export definition |
-| 4 | **Property schema** | Define custom properties; validate/create them on documents |
-| 5 | **Rules engine** | Include/exclude by type, filename, property |
-| 6 | **More table outputs** | XLSX, SQLite, multiple exports per run |
-| 7 | **File export tasks** | PDF, DWG, DXF, STEP with naming/destination rules; task log |
-| 8 | **Config Editor UI** | Edit both config types without hand-editing JSON |
-| 9 | **Polish** | Error reporting, progress, docs, installer, release |
+| 0 | Repo + solution skeleton | Done |
+| 1 | Traverse & dump (`snapshot.json`) | Done |
+| 2 | Rollup engine + basic CSV | **Done, validated vs Inventor (482 / 424)** |
+| 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable, patterns) | **Next: output not yet analyzed** |
+| 7 | File export tasks (PDF/DWG/DXF/STEP) | **Do next while trial is active** |
+| 4 | Property schema (read/write custom iProperties) | Needs Inventor; do during trial |
+| 3 | Config file v1 (columns, traversal, rollup from JSON) | After trial OK |
+| 5 | Rules engine | After trial OK |
+| 6 | XLSX, SQLite, multiple exports per run | After trial OK |
+| 8 | Config Editor UI (WPF) | After trial OK |
+| 9 | Polish, add-in launcher, `net48` build & testing on 2023/2024, installer, release | |
 
-> Resist building the UI early. A good config *format* first; the UI is just an editor for it.
+Resist building UI early; a good config *format* first.
 
 ---
 
 ## 9. Coding conventions
 
 - Small classes, clear names, XML doc comments on public members.
-- No Inventor types leaking out of `InvExport.Inventor`.
-- All errors on a single component are caught, logged, and recorded — they must not abort the whole export.
-- Use dependency injection lightly (constructor injection; no heavy frameworks needed initially).
-- Logging via `Microsoft.Extensions.Logging` (or Serilog) to a file next to the export output.
-- Every Core feature gets a unit test. Inventor-dependent code gets a manual test checklist in `docs/`.
-- Config changes that break old files require a `schemaVersion` bump and a migration note.
+- No Inventor types outside `OpenInventorExport.Inventor`.
+- Errors on a single component are caught, logged, and recorded in `Skipped`; they never abort the export.
+- Core: explicit `using` statements (netstandard2.0, no implicit usings). Inventor/Cli: `ImplicitUsings` enabled (needed for `Path`, `List<>`, `Exception`, etc.).
+- Every Core feature gets a unit test (Arrange/Act/Assert). Inventor-dependent code gets a manual checklist in `docs/`.
+- Config schema changes require `schemaVersion` bump and migration note.
+- Logging: planned `Microsoft.Extensions.Logging` to a file next to outputs.
 
 ---
 
-## 10. Git workflow (keep it simple)
+## 10. Git workflow
 
-- `main` is always buildable.
-- One short-lived branch per task: `feature/csv-export`, `fix/virtual-components`.
-- Commit often, with messages in the form: `Add CSV writer for snapshot` (imperative, specific).
-- Merge to `main` via Pull Request on GitHub even when working alone (gives a review checkpoint and history).
-- Tag milestones: `v0.1-traverse`, `v0.2-csv`…
-- Never commit: Inventor DLLs, customer/employer files, real part data, secrets, `bin/` `obj/`.
-
----
-
-## 11. Open questions (resolve before/during the relevant milestone)
-
-1. ~~Which Inventor version(s)?~~ **Resolved: 2023 and newer**, via multi-targeting (net48 + net8.0-windows). Prefer the CLI (out-of-process) as the primary engine so one build works across versions; the add-in is a thin launcher. Project/repo name: **OpenInventorExport** (use `OpenInventorExport.*` as the namespace/project prefix instead of `InvExport.*` used in the diagrams above).
-2. Add-in only, or also standalone CLI in v1?
-3. How are **drawings matched** to models in the owner's typical workflow?
-4. ~~Quantity rollup~~ **Resolved: configurable per export.** Modes: `Occurrence` (one row per occurrence), `Structured` (roll up within each parent), `Flat` (roll up across whole tree, quantities multiplied through levels). Rollup is a Core transformation applied to the snapshot, never done during traversal. Each export also defines a rollup **key** (e.g. Part Number, file path, or combination) and a **conflict rule** for rows sharing a key but differing in other columns (first / join / flag).
-   - Traversal options must also cover Inventor BOM structure handling (Reference, Phantom, Inseparable assemblies), as these are known causes of count differences vs. Inventor's own BOM.
-   - Future feature: **reconciliation report** comparing the tool's component list against Inventor's BOM.
-5. Should the tool **write back** to Inventor (create/repair custom properties) in v1, or only read?
-6. File-export **destination** types: local folder, network share, zip — anything else?
-7. Single user or shared team config location?
+- `main` is always buildable. One short-lived branch per task (`feature/file-export`, `fix/inseparable-handling`).
+- Commit often, imperative messages (`Add rollup engine and CSV writer`). **Push after committing**, and check the GitHub page.
+- Merge via Pull Request even when solo. Tag milestones (`v0.2-csv`, next `v0.3-...`).
+- `.gitignore` must include `bin/`, `obj/`, `output/`, `snapshot*.json` (until sanitized fixtures are intentionally added to `samples/snapshots/`).
+- Never commit: Inventor DLLs, third-party or employer models, files with usernames in paths.
 
 ---
 
-## 12. Definition of done (for any task)
+## 11. Open questions
 
-- Builds with no warnings introduced
-- Core logic covered by unit tests
+1. Drawing association strategy for file exports (same folder/same name? naming rule?). Owner to describe typical workflow.
+2. Inseparable / Reference / Phantom handling as per-export options (defaults: Phantom excluded from tables, recorded as skipped with reason?).
+3. Write-back: create/repair custom properties in v1, or read-only first? (Roadmap #4 assumes write.)
+4. File-export destination types: local folder, network share, zip?
+5. Single user or shared team config location?
+6. Rollup key default (file path vs Part Number) and conflict rule.
+7. Add-in launcher timing, and who will test `net48` on 2023/2024.
+
+---
+
+## 12. Definition of done (any task)
+
+- Builds without new warnings; `net48` target must build too once re-enabled
+- Core logic unit-tested
 - Tested manually against at least one real assembly (note which)
-- Skipped/failed components are reported, not hidden
+- Skipped/failed components reported, never hidden
 - README/docs updated if behavior or config changed
-- Committed with a clear message
+- Committed **and pushed** with a clear message
