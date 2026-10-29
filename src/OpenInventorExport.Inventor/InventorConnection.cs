@@ -15,7 +15,7 @@ public static class InventorConnection
         ref Guid clsid, IntPtr reserved,
         [MarshalAs(UnmanagedType.IUnknown)] out object obj);
 
-    public static Inv.Application GetRunningInventor()
+    internal static Inv.Application GetRunningInventor()
     {
         int hr = CLSIDFromProgID("Inventor.Application", out Guid clsid);
         if (hr != 0) Marshal.ThrowExceptionForHR(hr);

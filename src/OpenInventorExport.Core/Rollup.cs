@@ -16,8 +16,8 @@ public class RollupOptions
     public bool ExcludeReference { get; set; } = true;
     public bool ExcludeSuppressed { get; set; } = true;
 
-    /// <summary>AsSingleItem matches Inventor: the assembly is one row, its children are hidden.</summary>
-    public InseparableHandling Inseparable { get; set; } = InseparableHandling.AsSingleItem;
+    /// <summary>Null = Inventor's behavior for the mode: Flat hides children of inseparable assemblies, other modes list them.</summary>
+    public InseparableHandling? Inseparable { get; set; }
 
     public Func<ComponentRecord, string> Key { get; set; } =
         c => c.FullPath ?? c.FileName;
@@ -41,6 +41,9 @@ public static class Rollup
 {
     public static List<ExportRow> Apply(Snapshot snapshot, RollupOptions options)
     {
+        var inseparable = options.Inseparable
+            ?? (options.Mode == RollupMode.Flat ? InseparableHandling.AsSingleItem : InseparableHandling.IncludeChildren);
+
         // The top-level assembly (Level 0) is the thing being exported, not a row in it.
         var byPath = snapshot.Components
             .GroupBy(c => c.OccurrencePath)
@@ -59,14 +62,14 @@ public static class Rollup
 
         bool KeptInseparableAssembly(ComponentRecord c) =>
             c.BomStructure == "kInseparableBOMStructure"
-            && options.Inseparable == InseparableHandling.AsSingleItem;
+            && inseparable == InseparableHandling.AsSingleItem;
 
         var candidates = snapshot.Components
             .Where(c => c.Level > 0)
             .Where(c => !(options.ExcludePhantom && c.BomStructure == "kPhantomBOMStructure"))
             .Where(c => !(options.ExcludeReference && c.BomStructure == "kReferenceBOMStructure"))
             .Where(c => !(options.ExcludeSuppressed && c.IsSuppressed))
-            .Where(c => options.Inseparable == InseparableHandling.IncludeChildren || !InsideInseparable(c))
+            .Where(c => inseparable == InseparableHandling.IncludeChildren || !InsideInseparable(c))
             .Where(c => options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptInseparableAssembly(c))
             .ToList();
 

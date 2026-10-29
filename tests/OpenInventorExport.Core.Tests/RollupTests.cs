@@ -120,4 +120,16 @@ public class RollupTests
 
         Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
     }
+
+    [Fact]
+    public void Structured_DefaultsToListingInseparableChildren()
+    {
+        var s = Sample();
+        foreach (var c in s.Components.Where(c => c.FileName == "Sub.iam"))
+            c.BomStructure = "kInseparableBOMStructure";
+
+        var rows = Rollup.Apply(s, new RollupOptions { Mode = RollupMode.Structured });
+
+        Assert.Contains(rows, r => r.Component.FileName == "Bolt.ipt");
+    }
 }
