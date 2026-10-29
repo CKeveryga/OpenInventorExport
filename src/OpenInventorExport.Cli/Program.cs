@@ -98,8 +98,37 @@
 
 
 
+//using OpenInventorExport.Core;
+//using OpenInventorExport.Inventor;
+
+//var snapshot = SnapshotCollector.CollectFromRunningInventor();
+
+//var files = snapshot.Components
+//    .Where(c => c.FullPath != null)
+//    .Select(c => PathUtil.StripMemberSuffix(c.FullPath!))
+//    .Distinct(StringComparer.OrdinalIgnoreCase)
+//    .OrderBy(p => p)
+//    .ToList();
+
+//var drawings = DrawingLocator.FindForRunningInventor(files);
+
+//foreach (var model in files)
+//    Console.WriteLine($"{Path.GetFileName(model)} -> {drawings[model] ?? "(no drawing)"}");
+
+//Console.WriteLine($"{drawings.Values.Count(d => d != null)} of {files.Count} unique files have a drawing.");
+
+
+
+
+
+
+
+
+
 using OpenInventorExport.Core;
 using OpenInventorExport.Inventor;
+
+string outFolder = Path.GetFullPath(args.Length > 0 ? args[0] : "pdfs");
 
 var snapshot = SnapshotCollector.CollectFromRunningInventor();
 
@@ -110,9 +139,10 @@ var files = snapshot.Components
     .OrderBy(p => p)
     .ToList();
 
-var drawings = DrawingLocator.FindForRunningInventor(files);
+var results = PdfExporter.ExportDrawings(files, outFolder, PdfSheetMode.FirstOnly);
 
-foreach (var model in files)
-    Console.WriteLine($"{Path.GetFileName(model)} -> {drawings[model] ?? "(no drawing)"}");
+foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
+    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
 
-Console.WriteLine($"{drawings.Values.Count(d => d != null)} of {files.Count} unique files have a drawing.");
+foreach (var g in results.GroupBy(r => r.Status))
+    Console.WriteLine($"{g.Key}: {g.Count()}");

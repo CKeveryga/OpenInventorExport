@@ -18,7 +18,7 @@ public static class DrawingLocator
     /// Looks for a drawing named like the model, anywhere in the active project's paths.
     /// Returns the path, or null if none was found.
     /// </summary>
-    private static string? Find(Inv.Application app, string modelPath)
+    internal static string? Find(Inv.Application app, string modelPath)
     {
         string baseName = PathUtil.DrawingBaseName(modelPath);
         var pm = app.DesignProjectManager;
