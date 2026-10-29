@@ -1,7 +1,7 @@
 # OpenInventorExport — Project Guide
 
 > Source of truth for Claude (and any human contributor). Read fully before suggesting code or architecture.
-> Update whenever a decision changes. **Last updated: end of milestone 2 (traverse + rollup + CSV validated).**
+> Update whenever a decision changes. **Last updated: milestone 2.5 (edge-case validation: flat 444 = 444, structured 420 = 420).**
 
 ---
 
@@ -11,16 +11,16 @@
 
 - Repo: `OpenInventorExport` (GitHub), local path `C:\dev\OpenInventorExport`. Solution file is in the repo root.
 - Latest tag: `v0.2-csv`. `main` is buildable; work happens on short-lived feature branches.
-- **Validation result (the key proof):** on a real multi-level assembly (552 occurrences, 68 sub-assembly occurrences, 18 unique assemblies, 159 unique files) the tool reproduced Inventor's own BOM exactly:
-  - Flat / parts-only qty: **482 = Inventor "Parts Only" BOM**
-  - Structured qty: **424 = Inventor "Structured" BOM**
-- The owner also built an **edge-case test assembly** (virtual components, a pattern, one of every BOM structure type; no Content Center because the trial doesn't include it). **Its output has not been analyzed yet**: run the CLI against it and review `Skipped` and the summary first.
+- **Validation result (the key proof), assembly 1** (552 occurrences, 68 sub-assembly occurrences, 18 unique assemblies, 159 unique files): flat / parts-only qty **482 = Inventor "Parts Only" BOM**; structured qty **424 = Inventor "Structured" BOM**.
+- **Validation result, edge-case assembly (`PJ MK 2.iam`)**: 541 components, 6 suppressed, 1 virtual, 2 phantom, 2 reference, 1 purchased, 20 inseparable assemblies. Flat parts-only qty **444 = Inventor Parts Only**. Structured qty **420 = Inventor Structured**, but only with `Inseparable = IncludeChildren` and `ExcludePhantom = true` (see 4.4).
+- Edge cases confirmed matching Inventor: suppressed (excluded), virtual (counted once), phantom (excluded), reference (excluded), purchased (included), inseparable (mode-dependent).
+- **Corrected from this review:** the CSV now shows the virtual row's Part Number; Structured mode does not yet default to `IncludeChildren` automatically (**pending**, see 4.4).
 
 **Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; owner should confirm the exact date). After it expires nothing that needs Inventor can be run or tested. **Prioritize Inventor-dependent work first** (file-export translators, property read/write, edge cases). Pure-Core work (config format, rules engine, XLSX/SQLite writers, config editor UI) can be built after the trial from saved snapshots.
 
 **Next up (suggested order):**
-1. Analyze the edge-case assembly output (suppressed/virtual/phantom/reference/inseparable handling; fix traverser gaps).
-2. **File export tasks (roadmap #7):** PDF/DWG/DXF from drawings, STEP from models, via Inventor translators; task list + log. Needs a test `.idw` drawing for at least a few parts.
+1. Make Structured default to `IncludeChildren` (with a unit test), commit, push, tag `v0.2.5`.
+2. **File export tasks (roadmap #7):** PDF/DWG/DXF from drawings, STEP from models, via Inventor translators; task list + log. Needs a test `.idw` drawing for at least a few parts. Note: `FullPath` can carry a `<member>` suffix (see Section 7); strip it before passing paths to translators.
 3. Custom property read/write and schema validation (roadmap #4).
 4. Save sanitized snapshots from every test assembly as fixtures for post-trial development.
 5. Later (no Inventor needed): config file format, rules engine, XLSX/SQLite, config editor.
@@ -126,7 +126,13 @@ Rollup is a **Core transformation on the snapshot**, never done during traversal
 - `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain** (not just its file), so the same sub-assembly under two different parents lists its children under each. (An earlier version keyed parents by file only and came out 4 short vs Inventor.)
 - `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels.
 
-`RollupOptions`: `Mode`, `IncludeAssemblies`, `ExcludePhantom` (default true), `Key` (default: full path/file name; later configurable, e.g. Part Number). Planned: conflict rule when rows with the same key differ in other columns (first / join / flag). The Level 0 root is the thing exported and is excluded from rows.
+`RollupOptions`: `Mode`, `IncludeAssemblies`, `ExcludePhantom` (default true), `ExcludeReference` (default true), `ExcludeSuppressed` (default true), `Inseparable` (`AsSingleItem` | `IncludeChildren`), `Key` (default: full path/file name; later configurable, e.g. Part Number).
+**Validated BOM rules (against Inventor 2027):**
+- **Inseparable assemblies depend on the BOM view.** Inventor's *Parts Only* BOM hides their children (use `AsSingleItem`). Inventor's *Structured* BOM lists their children (use `IncludeChildren`). Structured mode must therefore default to `IncludeChildren`. **(pending implementation in `Rollup.cs`; until then, set it explicitly in the caller.)**
+- **Phantom** is excluded (`ExcludePhantom = true`) in both views. Including it gave 416/422 instead of 414/420.
+- **Reference** is excluded. **Suppressed** is excluded. **Purchased** is included.
+- **Inventor merges BOM rows that share a Part Number**, even when the files differ (e.g. four `Alu C 1x2x1x*.ipt` files with Part Number `Alu C 1x2x1x35` become one row of 9). Our default key is the file path, so we list them separately. Totals still match; row counts and per-row quantities do not. Choosing the rollup key (file vs Part Number) is an open decision (Section 11).
+- Do not compare per-file quantities to Inventor's rows. Compare **total quantity**, or group both sides by Part Number first.
 
 ### 4.5 Configuration (not built yet)
 
@@ -156,7 +162,7 @@ OpenInventorExport/               (repo root; .sln here)
 │  │   SnapshotCollector.cs       # facade used by the CLI
 │  │   InventorProbe.cs           # connection test
 │  └─ OpenInventorExport.Cli/         net8.0-windows exe
-│      Program.cs                 # collect -> write snapshot.json -> rollup -> CSV; prints validation numbers
+│      Program.cs                 # collect -> snapshot.json -> rollup -> CSV; prints totals vs Inventor's Parts Only BOM and a Structured option matrix
 ├─ tests/
 │  └─ OpenInventorExport.Core.Tests/  xUnit: snapshot round-trip, rollup (occurrence/flat/structured/ancestor-chain), CSV escaping
 ├─ output/                        # git-ignored: snapshots and CSVs
@@ -183,7 +189,7 @@ SkippedRecord: OccurrencePath, Reason (Suppressed, Virtual, ReferenceOnly, FileM
 
 `OccurrencePath` is a string built from occurrence names (e.g. `Top.iam/Sub:1/Bolt:3`); an **occurrence is not a file**: one `.ipt` can be many occurrences. `FullPath` comes from `occ.ReferencedDocumentDescriptor.FullDocumentName`.
 
-Traverser currently: records suppressed occurrences in `Skipped` (reason Suppressed) and does not recurse into them; flags virtual components via `occ.Definition is VirtualComponentDefinition`; records `BomStructure` (`kNormalBOMStructure`, `kPhantomBOMStructure`, ...); sets SubType for sheet metal; reads Design Tracking + User Defined property sets (all properties, ~60 per component, noisy; configurable column selection is the next fix); wraps each occurrence in try/catch so one bad component never aborts the run (reason Error).
+Traverser currently: records suppressed occurrences in `Skipped` (reason Suppressed) and does not recurse into them; their `DocumentType` shows as "Unknown" because `occ.Definition` throws on suppressed items (cosmetic, to be fixed); flags virtual components via `Definition.Type == kVirtualComponentDefinitionObject`; records `BomStructure`; sets SubType for sheet metal; reads Design Tracking + User Defined property sets (all properties, ~60 per component, noisy; configurable column selection is the next fix); wraps each occurrence in try/catch so one bad component never aborts the run (reason Error). Virtual components: properties are read from the definition's `PropertySets` and the name is trimmed (it has a leading space). **(pending: verify against real data.)**
 
 ---
 
@@ -194,10 +200,11 @@ Traverser currently: records suppressed occurrences in `Skipped` (reason Suppres
 - Our namespace `OpenInventorExport.Inventor` collides with Autodesk's `Inventor` namespace: always alias `using Inv = global::Inventor;`.
 - The interop DLL (`Autodesk.Inventor.Interop.dll`) is referenced by `HintPath` from the install folder via `Directory.Build.props`; **never commit it**. A plain `<Reference>` does **not** flow to dependent projects (hence the facade rule).
 - Model state lookup works: `asm.ComponentDefinition.ModelStates.ActiveModelState.Name` returned `[Primary]` on 2027.
-- `BOMStructure` values matter: **Phantom** parts are excluded from Inventor's Parts Only BOM (the tool matched Inventor by excluding them); Reference and Inseparable still need handling (Inseparable assemblies: Inventor's BOM hides children; our traversal currently walks into them; make this a traversal option, and record what was done).
+- `BOMStructure` values matter: **Phantom** parts are excluded from Inventor's Parts Only BOM (the tool matched Inventor by excluding them); Reference and Inseparable still need handling (Inseparable assemblies: Inventor's BOM hides children; our traversal currently walks into them; make this a traversal option, and record what was done).  Inseparable assemblies: Parts Only hides their children, Structured shows them (see 4.4).
 - Inventor's **Structured BOM lists each unique sub-assembly's contents once per distinct parent chain**, with qty = count within that parent. **Parts Only** multiplies through levels. Don't compare raw occurrence counts to either.
 - Property gotchas: Windows "empty date" is 1601-01-01; values are `object`; read per property set (`Design Tracking Properties`, `Inventor User Defined Properties`).
-- **Not yet verified:** Content Center / iPart/iAssembly member names (`FullDocumentName` may include a `<member>` suffix that breaks `Path.GetFileName`); virtual components' real behavior in the edge-case model; Reference BOM handling; quantity overrides in Inventor's BOM; multiple model states/LOD; files that fail to resolve; patterns; performance on large assemblies; COM object release.
+- **Verified on the edge-case assembly:** suppressed, virtual (count), phantom, reference, purchased and inseparable handling match Inventor's BOM totals. `FullDocumentName` **does** carry a `<member>` or model-state suffix (e.g. `V5 Motor (No Cover).ipt<No Cover>`) that is not part of the real file path: strip it before comparing against `Document.FullFileName` or passing the path to translators. Inventor's BOM compare must key virtual components separately, since they have no `Document`.
+- **Not yet verified:** Content Center / iPart / iAssembly members in detail; Reference BOM handling beyond the totals; quantity overrides in Inventor's BOM; multiple model states/LOD; files that fail to resolve; patterns (not explicitly checked); performance on large assemblies; COM object release; virtual component iProperties (fix pending); mass (most parts read `0`, probably never computed in the file, so treat Mass as unreliable).
 - **Drawings are not discoverable from the model** (a drawing references a model, not vice versa). Needs a configurable association strategy (same-name-in-same-folder, search paths, naming rules; Vault later).
 - Translators (DWG/DXF/STEP/PDF) use Inventor translator add-ins with `NameValueMap` option maps; each format needs its own options in config.
 
@@ -210,7 +217,7 @@ Traverser currently: records suppressed occurrences in `Skipped` (reason Suppres
 | 0 | Repo + solution skeleton | Done |
 | 1 | Traverse & dump (`snapshot.json`) | Done |
 | 2 | Rollup engine + basic CSV | **Done, validated vs Inventor (482 / 424)** |
-| 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable, patterns) | **Next: output not yet analyzed** |
+| 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable) | **Done: flat 444 = 444, structured 420 = 420.** Pending: Structured default |
 | 7 | File export tasks (PDF/DWG/DXF/STEP) | **Do next while trial is active** |
 | 4 | Property schema (read/write custom iProperties) | Needs Inventor; do during trial |
 | 3 | Config file v1 (columns, traversal, rollup from JSON) | After trial OK |
@@ -248,11 +255,11 @@ Resist building UI early; a good config *format* first.
 ## 11. Open questions
 
 1. Drawing association strategy for file exports (same folder/same name? naming rule?). Owner to describe typical workflow.
-2. Inseparable / Reference / Phantom handling as per-export options (defaults: Phantom excluded from tables, recorded as skipped with reason?).
+2. ~~Inseparable / Reference / Phantom handling~~ Resolved for BOM matching (see 4.4). Still open: should these be user-configurable per export, and should excluded phantom/reference items also appear in `Skipped` with a reason? (Currently they are silently excluded by rollup, which conflicts with the "nothing silently missing" promise.)
 3. Write-back: create/repair custom properties in v1, or read-only first? (Roadmap #4 assumes write.)
 4. File-export destination types: local folder, network share, zip?
 5. Single user or shared team config location?
-6. Rollup key default (file path vs Part Number) and conflict rule.
+6. Rollup key default (file path vs Part Number) and conflict rule. Inventor merges rows by Part Number, so this now affects row-for-row comparison with Inventor's BOM.
 7. Add-in launcher timing, and who will test `net48` on 2023/2024.
 
 ---
