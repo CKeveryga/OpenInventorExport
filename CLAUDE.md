@@ -126,7 +126,7 @@ Rollup is a **Core transformation on the snapshot**, never done during traversal
 - `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain** (not just its file), so the same sub-assembly under two different parents lists its children under each. (An earlier version keyed parents by file only and came out 4 short vs Inventor.)
 - `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels.
 
-`RollupOptions`: `Mode`, `IncludeAssemblies`, `ExcludePhantom` (default true), `ExcludeReference` (default true), `ExcludeSuppressed` (default true), `Inseparable` (`AsSingleItem` | `IncludeChildren`), `Key` (default: full path/file name; later configurable, e.g. Part Number).
+`RollupOptions`: `Mode`, `IncludeAssemblies`, `IncludeRoot` (default false), `ExcludePhantom` (default true), `ExcludeReference` (default true), `ExcludeSuppressed` (default true), `Inseparable` (`AsSingleItem` | `IncludeChildren`), `Key` (default: full path/file name; later configurable, e.g. Part Number).
 **Validated BOM rules (against Inventor 2027):**
 - **Inseparable assemblies depend on the BOM view.** Inventor's *Parts Only* BOM hides their children (use `AsSingleItem`). Inventor's *Structured* BOM lists their children (use `IncludeChildren`). Structured mode must therefore default to `IncludeChildren`. **(pending implementation in `Rollup.cs`; until then, set it explicitly in the caller.)**
 - **Phantom** is excluded (`ExcludePhantom = true`) in both views. Including it gave 416/422 instead of 414/420.
