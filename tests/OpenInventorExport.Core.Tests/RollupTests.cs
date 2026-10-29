@@ -141,7 +141,7 @@ public class RollupTests
     }
 
     [Fact]
-    public void IncludeRoot_AddsTopLevelAssemblyWithQtyOne_EvenWhenAssembliesAreExcluded()
+    public void IncludeRoot_IsIgnoredWhenAssembliesAreExcluded()
     {
         var rows = Rollup.Apply(Sample(), new RollupOptions
         {
@@ -150,8 +150,21 @@ public class RollupTests
             IncludeRoot = true
         });
 
+        Assert.DoesNotContain(rows, r => r.Component.Level == 0);
+        Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
+
+    [Fact]
+    public void IncludeRoot_AddsTopLevelAssemblyWithQtyOne_WhenAssembliesAreIncluded()
+    {
+        var rows = Rollup.Apply(Sample(), new RollupOptions
+        {
+            Mode = RollupMode.Flat,
+            IncludeAssemblies = true,
+            IncludeRoot = true
+        });
+
         Assert.Equal(1, rows.Single(r => r.Component.FileName == "Top.iam").Quantity);
-        Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity); // unchanged
     }
 
     [Fact]

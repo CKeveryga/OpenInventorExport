@@ -11,7 +11,7 @@ public enum InseparableHandling { AsSingleItem, IncludeChildren }
 public class RollupOptions
 {
     public RollupMode Mode { get; set; } = RollupMode.Flat;
-    /// <summary>Adds the top-level assembly (Level 0) as a row with qty 1. Off by default because Inventor's BOM does not list it.</summary>
+    /// <summary>Adds the top-level assembly (Level 0) as a row with qty 1. Off by default because Inventor's BOM does not list it. Has no effect when IncludeAssemblies is false.</summary>
     public bool IncludeRoot { get; set; } = false;
     public bool IncludeAssemblies { get; set; } = true;
     public bool ExcludePhantom { get; set; } = true;
