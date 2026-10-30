@@ -97,7 +97,7 @@ internal static class DrawingBatch
         return results;
     }
 
-    private static bool References(Inv.Document drawing, string modelPath)
+    internal static bool References(Inv.Document drawing, string modelPath)
     {
         string wanted = PathUtil.StripMemberSuffix(modelPath);
         var refs = drawing.ReferencedDocuments;
@@ -109,7 +109,7 @@ internal static class DrawingBatch
         return false;
     }
 
-    private static Inv.Document? FindOpenDocument(Inv.Application app, string path)
+    internal static Inv.Document? FindOpenDocument(Inv.Application app, string path)
     {
         for (int i = 1; i <= app.Documents.Count; i++)
         {

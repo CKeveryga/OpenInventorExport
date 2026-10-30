@@ -6,7 +6,7 @@ namespace OpenInventorExport.Inventor;
 public static class PdfExporter
 {
     // PDF translator add-in ID (from memory; verify if ItemById throws)
-    private const string PdfTranslatorId = "{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}";
+    internal const string PdfTranslatorId = "{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}";
 
     /// <summary>
     /// For each model, finds its drawing, checks the drawing references that model,
@@ -23,7 +23,7 @@ public static class PdfExporter
             (drw, path) => SaveAsPdf(app, translator, drw, path, sheets));
     }
 
-    private static void SaveAsPdf(Inv.Application app, Inv.TranslatorAddIn translator,
+    internal static void SaveAsPdf(Inv.Application app, Inv.TranslatorAddIn translator,
         Inv.DrawingDocument drw, string pdfPath, PdfSheetMode sheets)
     {
         var context = app.TransientObjects.CreateTranslationContext();
