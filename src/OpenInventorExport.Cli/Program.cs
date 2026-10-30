@@ -12,13 +12,14 @@ File.WriteAllText(Path.Combine(outRoot, "snapshot.json"), SnapshotJson.ToJson(sn
 // Hard-coded sample task until the config file format exists (milestone 3).
 var task = new ExportTask
 {
-    Name = "Package",
+    Name = "Drawings",
     FolderTemplate = "{task}/{format}",
     Selection = { DocumentTypes = { "Part", "SheetMetal" } },
     Outputs =
     {
-        new OutputSpec { Format = ExportFormat.Step, Source = ExportSource.Model },
-        new OutputSpec { Format = ExportFormat.Pdf,  Source = ExportSource.Drawing, PdfSheets = PdfSheetMode.FirstOnly }
+        new OutputSpec { Format = ExportFormat.Pdf,  Source = ExportSource.Drawing, PdfSheets = PdfSheetMode.AllInOne },
+        new OutputSpec { Format = ExportFormat.Dwg,  Source = ExportSource.Drawing },
+        new OutputSpec { Format = ExportFormat.Dxf,  Source = ExportSource.Drawing }
     }
 };
 
