@@ -7,9 +7,9 @@ public enum CadFormat { Dwg, Dxf, Dwf }
 
 public static class CadExporter
 {
-    private const string DwgTranslatorId = "{C24E3AC2-122E-11D5-8E91-0010B541CD80}";
-    private const string DxfTranslatorId = "{C24E3AC4-122E-11D5-8E91-0010B541CD80}";
-    private const string DwfTranslatorId = "{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}";
+    internal const string DwgTranslatorId = "{C24E3AC2-122E-11D5-8E91-0010B541CD80}";
+    internal const string DxfTranslatorId = "{C24E3AC4-122E-11D5-8E91-0010B541CD80}";
+    internal const string DwfTranslatorId = "{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}";
 
     /// <param name="iniFile">Optional layer/version mapping for DWG/DXF. Null or empty = translator defaults. Ignored for DWF.</param>
     public static List<ExportResult> ExportDrawings(
@@ -26,7 +26,7 @@ public static class CadExporter
             (doc, path) => Save(app, translator, (Inv.Document)doc, path, format, iniFile));
     }
 
-    private static string IdFor(CadFormat f) => f switch
+    internal static string IdFor(CadFormat f) => f switch
     {
         CadFormat.Dwg => DwgTranslatorId,
         CadFormat.Dxf => DxfTranslatorId,
@@ -40,7 +40,7 @@ public static class CadExporter
         _ => ".dwf"
     };
 
-    private static void Save(Inv.Application app, Inv.TranslatorAddIn translator,
+    internal static void Save(Inv.Application app, Inv.TranslatorAddIn translator,
         Inv.Document doc, string path, CadFormat format, string? iniFile)
     {
         var context = app.TransientObjects.CreateTranslationContext();

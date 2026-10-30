@@ -1,185 +1,44 @@
-﻿//using OpenInventorExport.Core;
-//using OpenInventorExport.Inventor;
-
-//string outputPath = Path.GetFullPath(args.Length > 0 ? args[0] : "snapshot.json");
-
-//var snapshot = SnapshotCollector.CollectFromRunningInventor();
-
-//File.WriteAllText(outputPath, SnapshotJson.ToJson(snapshot));
-
-//Console.WriteLine($"Components: {snapshot.Components.Count}");
-//Console.WriteLine($"Skipped:    {snapshot.Skipped.Count}");
-//Console.WriteLine($"Written to: {outputPath}");
-
-//foreach (var line in SnapshotSummary.Describe(snapshot))
-//    Console.WriteLine(line);
-
-//var flat = Rollup.Apply(snapshot, new RollupOptions
-//{ Mode = RollupMode.Flat, IncludeAssemblies = false });
-//var structured = Rollup.Apply(snapshot, new RollupOptions
-//{ Mode = RollupMode.Structured });
-
-//var invBom = SnapshotCollector.ReadPartsOnlyBom();
-
-//Console.WriteLine($"Flat parts-only qty: ours {flat.Sum(r => r.Quantity)}, Inventor {invBom.Values.Sum()}");
-//Console.WriteLine($"Structured qty:      ours {structured.Sum(r => r.Quantity)}   (compare to Inventor's Structured BOM by eye)");
-
-////foreach (var insep in new[] { InseparableHandling.AsSingleItem, InseparableHandling.IncludeChildren })
-////    foreach (bool exclPhantom in new[] { true, false })
-////    {
-////        var st = Rollup.Apply(snapshot, new RollupOptions
-////        {
-////            Mode = RollupMode.Structured,
-////            Inseparable = insep,
-////            ExcludePhantom = exclPhantom
-////        });
-////        Console.WriteLine($"Structured, Inseparable={insep}, ExcludePhantom={exclPhantom}: {st.Sum(r => r.Quantity)} (Inv 420)");
-////    }
-
-//foreach (bool excludeSuppressed in new[] { true, false })
-//{
-//    var f = Rollup.Apply(snapshot, new RollupOptions
-//    { Mode = RollupMode.Flat, IncludeAssemblies = false, ExcludeSuppressed = excludeSuppressed });
-//    Console.WriteLine($"  ExcludeSuppressed={excludeSuppressed}: flat {f.Sum(r => r.Quantity)}");
-//}
-
-//string csvPath = Path.ChangeExtension(outputPath, ".csv");
-//File.WriteAllText(
-//    csvPath,
-//    CsvTableWriter.Write(structured, new[] { "Part Number", "Description", "Mass" }),
-//    new System.Text.UTF8Encoding(true));
-//Console.WriteLine($"CSV written to: {csvPath}");
-
-//foreach (var s in snapshot.Skipped)
-//    Console.WriteLine($"SKIPPED [{s.Reason}] {s.OccurrencePath} :: {s.Detail}");
-
-//var ours = flat
-//    .GroupBy(r => NormalizeKey(r.Component))
-//    .ToDictionary(g => g.Key, g => g.Sum(r => r.Quantity), StringComparer.OrdinalIgnoreCase);
-
-//Console.WriteLine("--- Differences vs Inventor Parts Only BOM ---");
-//foreach (var key in invBom.Keys.Union(ours.Keys, StringComparer.OrdinalIgnoreCase).OrderBy(k => k))
-//{
-//    invBom.TryGetValue(key, out int inv);
-//    ours.TryGetValue(key, out int mine);
-//    if (inv != mine)
-//        Console.WriteLine($"{Path.GetFileName(key)}: Inventor {inv}, ours {mine}");
-//}
-//Console.WriteLine("--- end ---");
-
-//// Strips a trailing <member/model state> suffix so keys match Inventor's file paths.
-//static string NormalizeKey(OpenInventorExport.Core.Model.ComponentRecord c)
-//{
-//    if (c.IsVirtual) return "(virtual)";
-//    string path = c.FullPath ?? c.FileName;
-//    int i = path.LastIndexOf('<');
-//    return i > 0 && path.EndsWith(">") ? path.Substring(0, i) : path;
-//}
-
-
-
-
-
-
-
-//using OpenInventorExport.Inventor;
-
-//string path = Path.GetFullPath(args.Length > 0 ? args[0] : "test.stp");
-//Console.WriteLine("Exported: " + StepExporter.ExportActiveDocument(path));
-
-
-
-
-
-
-
-
-
-
-
-
-//using OpenInventorExport.Core;
-//using OpenInventorExport.Inventor;
-
-//var snapshot = SnapshotCollector.CollectFromRunningInventor();
-
-//var files = snapshot.Components
-//    .Where(c => c.FullPath != null)
-//    .Select(c => PathUtil.StripMemberSuffix(c.FullPath!))
-//    .Distinct(StringComparer.OrdinalIgnoreCase)
-//    .OrderBy(p => p)
-//    .ToList();
-
-//var drawings = DrawingLocator.FindForRunningInventor(files);
-
-//foreach (var model in files)
-//    Console.WriteLine($"{Path.GetFileName(model)} -> {drawings[model] ?? "(no drawing)"}");
-
-//Console.WriteLine($"{drawings.Values.Count(d => d != null)} of {files.Count} unique files have a drawing.");
-
-
-
-
-
-
-
-
-
+﻿using System.Text;
 using OpenInventorExport.Core;
 using OpenInventorExport.Inventor;
 
-string outFolder = Path.GetFullPath(args.Length > 0 ? args[0] : "pdfs");
+string outRoot = Path.GetFullPath(args.Length > 0 ? args[0] : "output");
+bool planOnly = args.Length > 1 && args[1].Equals("plan", StringComparison.OrdinalIgnoreCase);
+Directory.CreateDirectory(outRoot);
 
 var snapshot = SnapshotCollector.CollectFromRunningInventor();
+File.WriteAllText(Path.Combine(outRoot, "snapshot.json"), SnapshotJson.ToJson(snapshot));
 
-var files = snapshot.Components
-    .Where(c => c.FullPath != null)
-    .Select(c => PathUtil.StripMemberSuffix(c.FullPath!))
-    .Distinct(StringComparer.OrdinalIgnoreCase)
-    .OrderBy(p => p)
-    .ToList();
+// Hard-coded sample task until the config file format exists (milestone 3).
+var task = new ExportTask
+{
+    Name = "Package",
+    FolderTemplate = "{task}/{format}",
+    Selection = { DocumentTypes = { "Part", "SheetMetal" } },
+    Outputs =
+    {
+        new OutputSpec { Format = ExportFormat.Step, Source = ExportSource.Model },
+        new OutputSpec { Format = ExportFormat.Pdf,  Source = ExportSource.Drawing, PdfSheets = PdfSheetMode.FirstOnly }
+    }
+};
 
-//var results = PdfExporter.ExportDrawings(files, outFolder, PdfSheetMode.FirstOnly);
-var results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dwg);   // then CadFormat.Dxf
+var jobs = ExportPlanner.Plan(snapshot, task, outRoot);
+Console.WriteLine($"Planned: {jobs.Count(j => j.State == JobState.Planned)}, " +
+                  $"Conflicts: {jobs.Count(j => j.State == JobState.Conflict)}");
 
-foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
-    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
+if (planOnly)
+{
+    foreach (var j in jobs)
+        Console.WriteLine($"[{j.State}] {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
+    return;
+}
 
-foreach (var g in results.GroupBy(r => r.Status))
-    Console.WriteLine($"{g.Key}: {g.Count()}");
+var results = JobRunner.Run(jobs, r =>
+    Console.WriteLine($"[{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
 
+File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
+File.WriteAllText(Path.Combine(outRoot, "export-log.json"), ExportResultLog.ToJson(results));
 
-results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dxf);   // then CadFormat.Dxf
-
-foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
-    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
-
-foreach (var g in results.GroupBy(r => r.Status))
-    Console.WriteLine($"{g.Key}: {g.Count()}");
-
-
-
-results = CadExporter.ExportDrawings(files, outFolder, CadFormat.Dwf);   // then CadFormat.Dxf
-
-foreach (var r in results.Where(r => r.Status != ExportStatus.NoDrawing))
-    Console.WriteLine($"[{r.Status}] {Path.GetFileName(r.ModelPath)} -> {r.OutputPath ?? r.Detail}");
-
-foreach (var g in results.GroupBy(r => r.Status))
-    Console.WriteLine($"{g.Key}: {g.Count()}");
-
-
-
-
-//string outFolder = Path.GetFullPath(args.Length > 0 ? args[0] : "cad");
-//var format = args.Length > 1 ? Enum.Parse<CadFormat>(args[1], true) : CadFormat.Dxf;
-//string? ini = args.Length > 2 ? args[2] : null;
-//...
-//var results = CadExporter.ExportDrawings(files, outFolder, format, ini);
-
-
-
-
-//using OpenInventorExport.Inventor;
-
-//string path = Path.GetFullPath(args.Length > 0 ? args[0] : "top.dwf");
-//Console.WriteLine("Exported: " + CadExporter.ExportActiveModelAsDwf(path));
+foreach (var line in ExportResultLog.Summary(results))
+    Console.WriteLine(line);
+Console.WriteLine($"Log written to: {outRoot}");

@@ -4,18 +4,19 @@ namespace OpenInventorExport.Inventor;
 
 public static class StepExporter
 {
-    // STEP translator add-in ID (from memory; verify if ItemById throws)
-    private const string StepTranslatorId = "{90AF7F40-0C01-11D5-8E83-0010B541CD80}";
+    internal const string TranslatorId = "{90AF7F40-0C01-11D5-8E83-0010B541CD80}";
 
-    /// <summary>Exports the ACTIVE document to a STEP file. Probe only; will be generalized.</summary>
+    /// <summary>Exports the ACTIVE document to a STEP file. Probe only.</summary>
     public static string ExportActiveDocument(string outputPath)
     {
         var app = InventorConnection.GetRunningInventor();
-        var doc = app.ActiveDocument;
+        Save(app, Translators.Get(app, TranslatorId), app.ActiveDocument, outputPath);
+        return outputPath;
+    }
 
-        var translator = (Inv.TranslatorAddIn)app.ApplicationAddIns.ItemById[StepTranslatorId];
-        translator.Activate();
-
+    internal static void Save(Inv.Application app, Inv.TranslatorAddIn translator,
+        Inv.Document doc, string path)
+    {
         var context = app.TransientObjects.CreateTranslationContext();
         context.Type = Inv.IOMechanismEnum.kFileBrowseIOMechanism;
 
@@ -26,9 +27,7 @@ public static class StepExporter
         }
 
         var data = app.TransientObjects.CreateDataMedium();
-        data.FileName = outputPath;
-
+        data.FileName = path;
         translator.SaveCopyAs(doc, context, options, data);
-        return outputPath;
     }
 }

@@ -31,7 +31,7 @@ public static class CsvTableWriter
         return sb.ToString();
     }
 
-    private static string Escape(string value)
+    internal static string Escape(string value)
     {
         if (value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) < 0) return value;
         return "\"" + value.Replace("\"", "\"\"") + "\"";
