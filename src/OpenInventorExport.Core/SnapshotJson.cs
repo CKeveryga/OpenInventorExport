@@ -1,6 +1,7 @@
-﻿using System.Text.Json;
+﻿using OpenInventorExport.Core.Model;
+using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
@@ -15,6 +16,13 @@ public static class SnapshotJson
     public static string ToJson(Snapshot snapshot) =>
         JsonSerializer.Serialize(snapshot, Options);
 
-    public static Snapshot? FromJson(string json) =>
-        JsonSerializer.Deserialize<Snapshot>(json, Options);
+    public static Snapshot? FromJson(string json)
+    {
+        var snapshot = JsonSerializer.Deserialize<Snapshot>(json, Options);
+        if (snapshot != null && snapshot.SchemaVersion != Snapshot.CurrentSchemaVersion)
+            throw new InvalidDataException(
+                $"Snapshot has schema version {snapshot.SchemaVersion}; this build reads version " +
+                $"{Snapshot.CurrentSchemaVersion}. Re-collect it from Inventor.");
+        return snapshot;
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
@@ -13,6 +14,8 @@ public class PropertyFilter
     public string Property { get; set; } = "";
     public FilterOperator Operator { get; set; } = FilterOperator.Equals;
     public string? Value { get; set; }
+    /// <summary>Which Inventor property set the property is in. Default: Design Tracking.</summary>
+    public string Set { get; set; } = PropertySetNames.DesignTracking;
 }
 
 /// <summary>Which components a task exports. A component must pass every test (AND).</summary>

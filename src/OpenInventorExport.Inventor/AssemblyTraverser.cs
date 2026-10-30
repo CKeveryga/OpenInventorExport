@@ -155,27 +155,24 @@ public class AssemblyTraverser
 
     private static void ReadProperties(Inv.PropertySets sets, ComponentRecord rec)
     {
-        string[] setNames =
-        {
-        "Design Tracking Properties",
-        "Inventor User Defined Properties"
-    };
+        string[] setNames = { PropertySetNames.DesignTracking, PropertySetNames.UserDefined };
 
         foreach (string setName in setNames)
         {
             try
             {
                 Inv.PropertySet set = sets[setName];
+                var values = new Dictionary<string, PropertyValue>();
                 for (int i = 1; i <= set.Count; i++)
                 {
                     try
                     {
                         Inv.Property prop = set[i];
-                        object? value = prop.Value;
-                        rec.Properties[prop.Name] = ToPropertyValue(value);
+                        values[prop.Name] = ToPropertyValue(prop.Value);
                     }
                     catch { /* skip unreadable property */ }
                 }
+                rec.PropertySets[setName] = values;
             }
             catch { /* property set missing: fine */ }
         }

@@ -83,7 +83,7 @@ public static class ExportPlanner
 
     private static bool Passes(ComponentRecord c, PropertyFilter f)
     {
-        string value = c.Properties.TryGetValue(f.Property, out var pv) ? pv.Value ?? "" : "";
+        string value = c.FindProperty(f.Set, f.Property)?.Value ?? "";
         string wanted = f.Value ?? "";
         switch (f.Operator)
         {
