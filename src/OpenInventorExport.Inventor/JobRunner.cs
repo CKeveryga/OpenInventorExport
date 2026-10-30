@@ -63,24 +63,37 @@ public static class JobRunner
                 sourcePath = job.ModelPath;
             }
 
-            // Use the document if the user already has it open; otherwise open invisibly.
-            Inv.Document? doc = DrawingBatch.FindOpenDocument(app, sourcePath);
-            if (doc == null)
-            {
-                doc = app.Documents.Open(sourcePath, false);
-                opened = doc;
-            }
+            Inv.Document? existing = DrawingBatch.FindOpenDocument(app, sourcePath);
+            Inv.Document doc = existing ?? app.Documents.Open(sourcePath, false);
+            if (existing == null) opened = doc;
 
-            if (fromDrawing && !DrawingBatch.References(doc, job.ModelPath))
-            {
-                result.Status = ExportStatus.DrawingMismatch;
-                result.Detail = "Drawing found by name does not reference this model";
-                return;
-            }
+            string outDir = Path.GetDirectoryName(job.OutputPath)!;
+            string baseName = Path.GetFileNameWithoutExtension(job.OutputPath);
+            string plannedName = Path.GetFileName(job.OutputPath);
+            var started = DateTime.Now.AddSeconds(-2);
 
             Save(app, job, doc);
-            result.Status = ExportStatus.Exported;
-            result.Detail = null;
+
+            var written = Directory.GetFiles(outDir, baseName + "*" + Path.GetExtension(job.OutputPath))
+                .Where(f => File.GetLastWriteTime(f) >= started)
+                .Select(f => Path.GetFileName(f)!)
+                .Where(n => n.Equals(plannedName, StringComparison.OrdinalIgnoreCase)
+                         || n.StartsWith(baseName + "_Sheet", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            bool plannedExists = written.Contains(plannedName, StringComparer.OrdinalIgnoreCase);
+            if (written.Count == 0)
+            {
+                result.Status = ExportStatus.Failed;
+                result.Detail = "Translator reported success but wrote no file";
+            }
+            else
+            {
+                result.Status = ExportStatus.Exported;
+                result.Detail = plannedExists && written.Count == 1
+                    ? null
+                    : "Files written: " + string.Join("; ", written);
+            }
         }
         catch (Exception ex)
         {
@@ -111,12 +124,29 @@ public static class JobRunner
             case ExportFormat.Dwg:
             case ExportFormat.Dxf:
             case ExportFormat.Dwf:
-                var cad = spec.Format == ExportFormat.Dwg ? CadFormat.Dwg
-                        : spec.Format == ExportFormat.Dxf ? CadFormat.Dxf
-                        : CadFormat.Dwf;
-                CadExporter.Save(app, Translators.Get(app, CadExporter.IdFor(cad)),
-                    doc, job.OutputPath, cad, spec.IniFile);
-                break;
+                {
+                    var cad = spec.Format == ExportFormat.Dwg ? CadFormat.Dwg
+                            : spec.Format == ExportFormat.Dxf ? CadFormat.Dxf
+                            : CadFormat.Dwf;
+
+                    // DWG/DXF with ALL SHEETS=No export the active sheet, so make that sheet 1.
+                    Inv.Sheet? previous = null;
+                    if (cad != CadFormat.Dwf && doc is Inv.DrawingDocument drw && drw.Sheets.Count > 0)
+                    {
+                        previous = drw.ActiveSheet;
+                        drw.Sheets[1].Activate();
+                    }
+                    try
+                    {
+                        CadExporter.Save(app, Translators.Get(app, CadExporter.IdFor(cad)),
+                            doc, job.OutputPath, cad, spec.IniFile);
+                    }
+                    finally
+                    {
+                        try { previous?.Activate(); } catch { /* best effort */ }
+                    }
+                    break;
+                }
 
             default:
                 throw new NotSupportedException($"Format {spec.Format} is not supported.");
