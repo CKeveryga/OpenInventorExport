@@ -2,7 +2,7 @@
 
 public enum PdfSheetMode { AllInOne, FirstOnly }
 
-public enum ExportStatus { Exported, NoDrawing, DrawingMismatch, Failed }
+public enum ExportStatus { Exported, NoDrawing, DrawingMismatch, Failed, Conflict }
 
 /// <summary>The outcome of one file-export task. Every task produces one of these, so nothing goes missing silently.</summary>
 public class ExportResult
