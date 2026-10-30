@@ -251,7 +251,7 @@ Traverser currently: records suppressed occurrences in `Skipped` (reason Suppres
 | 2 | Rollup engine + basic CSV | **Done, validated vs Inventor (482 / 424)** |
 | 2.5 | Edge-case assembly review (suppressed, virtual, phantom, reference, inseparable) | **Done: flat 444 = 444, structured 420 = 420.** |
 | 7 | File export: probes done (STEP, PDF, DWG, DXF, DWF); export planning (Core) done; Inventor task runner next | In progress |
-| 4 | Property schema (read/write custom iProperties) | Needs Inventor; do during trial |
+| 4 | Property schema (read custom iProperties) | Needs Inventor; do during trial |
 | 3 | Config file v1 (columns, traversal, rollup from JSON) | After trial OK |
 | 5 | Rules engine | After trial OK |
 | 6 | XLSX, SQLite, multiple exports per run | After trial OK |
@@ -288,7 +288,7 @@ Resist building UI early; a good config *format* first.
 
 1. Drawing association strategy for file exports (same folder/same name? naming rule?). Owner to describe typical workflow.
 2. ~~Inseparable / Reference / Phantom handling~~ Resolved for BOM matching (see 4.4). Still open: should these be user-configurable per export, and should excluded phantom/reference items also appear in `Skipped` with a reason? (Currently they are silently excluded by rollup, which conflicts with the "nothing silently missing" promise.)
-3. Write-back: create/repair custom properties in v1, or read-only first? (Roadmap #4 assumes write.)
+3. Write-back: create/repair custom properties in v1, or read-only first? **Never write inventor properties, only ever read-only**
 4. File-export destination types: local folder, network share, zip?
 5. Single user or shared team config location?
 6. Rollup key default (file path vs Part Number) and conflict rule. Inventor merges rows by Part Number, so this now affects row-for-row comparison with Inventor's BOM.
