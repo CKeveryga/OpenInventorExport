@@ -4,6 +4,21 @@ using OpenInventorExport.Inventor;
 using System.Reflection.Metadata;
 using System.Text;
 
+if (args.Length > 1 && args[0].Equals("totals", StringComparison.OrdinalIgnoreCase))
+{
+    foreach (string file in args.Skip(1))
+    {
+        var s = SnapshotJson.FromJson(File.ReadAllText(file))!;
+        Console.WriteLine(Path.GetFileName(file));
+        Console.WriteLine($"  Components: {s.Components.Count}");
+        Console.WriteLine($"  Parts Only total: {BomTotals.PartsOnly(s)}");
+        Console.WriteLine($"  Structured total: {BomTotals.Structured(s)}");
+        foreach (var g in s.Skipped.GroupBy(k => k.Reason).OrderBy(g => g.Key))
+            Console.WriteLine($"  Skipped {g.Key}: {g.Count()}");
+    }
+    return;
+}
+
 string outRoot = Path.GetFullPath(args.Length > 0 ? args[0] : "output");
 bool planOnly = args.Length > 1 && args[1].Equals("plan", StringComparison.OrdinalIgnoreCase);
 Directory.CreateDirectory(outRoot);
