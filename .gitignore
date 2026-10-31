@@ -5,6 +5,7 @@
 
 # Temporary sensitive information
 snapshot*.json
+!samples/snapshots/*.json
 output/
 
 # User-specific files
