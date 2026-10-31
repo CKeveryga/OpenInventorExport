@@ -15,6 +15,13 @@ public enum SkipReason
     ExcludedByRule
 }
 
+/// <summary>Inventor's own names for the property sets we read.</summary>
+public static class PropertySetNames
+{
+    public const string DesignTracking = "Design Tracking Properties";
+    public const string UserDefined = "Inventor User Defined Properties";
+}
+
 public class PropertyValue
 {
     public PropertyDataType DataType { get; set; }
@@ -34,7 +41,21 @@ public class ComponentRecord
     public bool IsVirtual { get; set; }
     public string? BomStructure { get; set; }
     public string? ParentPath { get; set; }
-    public Dictionary<string, PropertyValue> Properties { get; set; } = new();
+
+    /// <summary>Property set name (see PropertySetNames) -> property name -> value.</summary>
+    public Dictionary<string, Dictionary<string, PropertyValue>> PropertySets { get; set; } = new();
+
+    /// <summary>The property's value, or null if the set or the property is not there.</summary>
+    public PropertyValue? FindProperty(string set, string name) =>
+        PropertySets.TryGetValue(set, out var props) && props.TryGetValue(name, out var value) ? value : null;
+
+    /// <summary>Stores a value in this in-memory record (creates the set if needed). Never touches Inventor.</summary>
+    public void SetProperty(string set, string name, PropertyValue value)
+    {
+        if (!PropertySets.TryGetValue(set, out var props))
+            PropertySets[set] = props = new Dictionary<string, PropertyValue>();
+        props[name] = value;
+    }
 }
 
 public class SkippedRecord
@@ -46,7 +67,9 @@ public class SkippedRecord
 
 public class Snapshot
 {
-    public int SchemaVersion { get; set; } = 1;
+    public const int CurrentSchemaVersion = 2;
+
+    public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public string? InventorVersion { get; set; }
     public string? SourceFile { get; set; }

@@ -18,7 +18,7 @@ public class ExportPlannerTests
             Level = level
         };
         if (material != null)
-            c.Properties["Material"] = new PropertyValue { Value = material };
+            c.SetProperty(PropertySetNames.DesignTracking, "Material", new PropertyValue { Value = material });
         return c;
     }
 

@@ -69,10 +69,10 @@ public class RollupTests
     public void Csv_EscapesCommasAndQuotes()
     {
         var rec = Rec("Top.iam/X:1", "Top.iam", "X.ipt", "Part", 1);
-        rec.Properties["Description"] = new PropertyValue { Value = "Bolt, 5\" long" };
+        rec.SetProperty(PropertySetNames.DesignTracking, "Description", new PropertyValue { Value = "Bolt, 5\" long" });
         var csv = CsvTableWriter.Write(
             new[] { new ExportRow(rec, 1, null) },
-            new[] { "Description" });
+            new[] { (PropertySetNames.DesignTracking, "Description") });
         Assert.Contains("\"Bolt, 5\"\" long\"", csv);
     }
 

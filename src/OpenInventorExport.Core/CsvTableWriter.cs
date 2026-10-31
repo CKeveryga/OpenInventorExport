@@ -6,11 +6,11 @@ namespace OpenInventorExport.Core;
 
 public static class CsvTableWriter
 {
-    public static string Write(IEnumerable<ExportRow> rows, IReadOnlyList<string> propertyColumns)
+    public static string Write(IEnumerable<ExportRow> rows, IReadOnlyList<(string Set, string Name)> propertyColumns)
     {
         var sb = new StringBuilder();
         var header = new List<string> { "File Name", "Qty" };
-        header.AddRange(propertyColumns);
+        header.AddRange(propertyColumns.Select(c => c.Name));
         sb.AppendLine(string.Join(",", header.Select(Escape)));
 
         foreach (var row in rows)
@@ -21,11 +21,7 @@ public static class CsvTableWriter
                 row.Quantity.ToString()
             };
             foreach (var col in propertyColumns)
-            {
-                cells.Add(row.Component.Properties.TryGetValue(col, out var pv)
-                    ? pv.Value ?? ""
-                    : "");
-            }
+                cells.Add(row.Component.FindProperty(col.Set, col.Name)?.Value ?? "");
             sb.AppendLine(string.Join(",", cells.Select(Escape)));
         }
         return sb.ToString();

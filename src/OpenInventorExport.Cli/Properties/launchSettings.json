@@ -1,8 +1,7 @@
 {
   "profiles": {
     "OpenInventorExport.Cli": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\dev\\OpenInventorExport\\output\\export1"
+      "commandName": "Project"
     }
   }
 }
