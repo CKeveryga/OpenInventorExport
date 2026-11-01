@@ -70,7 +70,7 @@ public static class ExportPlanner
     private static List<ComponentRecord> Select(Snapshot snapshot, ExportSelection sel)
     {
         return snapshot.Components
-            .Where(c => c.FullPath != null && !c.IsSuppressed && !c.IsVirtual)
+            .Where(c => c.FullPath != null && !c.IsSuppressed && !c.IsVirtual && !c.IsUnresolved)
             .Where(c => sel.Scope == ExportScope.AllUniqueFiles || c.Level == 0)
             .Where(c => sel.DocumentTypes.Count == 0 ||
                         sel.DocumentTypes.Contains(c.DocumentType, StringComparer.OrdinalIgnoreCase))

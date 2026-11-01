@@ -110,6 +110,7 @@ public class AssemblyTraverser
 
                 if (!isVirtual)
                 {
+                    bool unresolved = false;
                     try
                     {
                         rec.FullPath = occ.ReferencedDocumentDescriptor.FullDocumentName;
@@ -117,14 +118,35 @@ public class AssemblyTraverser
                     }
                     catch
                     {
-                        AddSkipped(path, SkipReason.FileMissing, "Could not resolve the referenced file");
+                        unresolved = true;
+                        AddSkipped(path, SkipReason.FileMissing, "Could not read the referenced file name");
                     }
 
                     rec.IsContentCenter = TryIsContentCenter(occ);
 
+                    // An unresolved file makes Inventor throw when we ask for its document.
+                    // Record the component anyway, flagged, so it never drops out of the list.
+                    step = "opening the referenced file";
+                    Inv.PropertySets? sets = null;
+                    if (!unresolved)
+                    {
+                        try
+                        {
+                            var doc = occ.Definition.Document as Inv.Document;
+                            sets = doc?.PropertySets;
+                        }
+                        catch (Exception ex)
+                        {
+                            unresolved = true;
+                            AddSkipped(path, SkipReason.FileMissing,
+                                $"Referenced file could not be opened: {rec.FullPath} ({ex.Message})");
+                        }
+                    }
+                    rec.IsUnresolved = unresolved;
+
                     step = "reading properties";
-                    if (occ.Definition.Document is Inv.Document doc)
-                        ReadProperties(doc.PropertySets, rec);
+                    if (sets != null)
+                        ReadProperties(sets, rec);
                 }
                 else
                 {

@@ -11,6 +11,7 @@ public static class CsvTableWriter
         var sb = new StringBuilder();
         var header = new List<string> { "File Name", "Qty" };
         header.AddRange(propertyColumns.Select(c => c.Name));
+        header.Add("Status");
         sb.AppendLine(string.Join(",", header.Select(Escape)));
 
         foreach (var row in rows)
@@ -22,6 +23,7 @@ public static class CsvTableWriter
             };
             foreach (var col in propertyColumns)
                 cells.Add(row.Component.FindProperty(col.Set, col.Name)?.Value ?? "");
+            cells.Add(row.Component.IsUnresolved ? "Unresolved" : "");
             sb.AppendLine(string.Join(",", cells.Select(Escape)));
         }
         return sb.ToString();

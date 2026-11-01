@@ -41,6 +41,8 @@ public class ComponentRecord
     public bool IsVirtual { get; set; }
     /// <summary>True if the part is a Content Center member. Null = not recorded (older snapshot, or Inventor would not say).</summary>
     public bool? IsContentCenter { get; set; }
+    /// <summary>True if Inventor could not open the referenced file (missing or moved). Listed with no properties; an unresolved assembly's children cannot be seen.</summary>
+    public bool IsUnresolved { get; set; }
     public string? BomStructure { get; set; }
     public string? ParentPath { get; set; }
 
