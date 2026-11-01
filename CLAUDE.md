@@ -1,7 +1,7 @@
 # OpenInventorExport — Project Guide
 
 > Source of truth for Claude (and any human contributor). Read fully before suggesting code or architecture.
-> Update whenever a decision changes. **Last updated: 2026-10-31. Tagged through v0.3.9 (confirm the v0.3.9 tag exists). Config v1 steps 1-3 are done on `feature/config-task-json` (tag after merging).**
+> Update whenever a decision changes. **Last updated: 2026-10-31. Tagged through v0.3.10. Config v1 steps 1-3 are done on `feature/config-task-json` (tag after merging).**
 
 ---
 
