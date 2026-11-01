@@ -16,7 +16,7 @@
 
   | Assembly | Parts Only qty | Parts Only rows | Structured qty | Structured rows |
   |---|---|---|---|---|
-  | PJ MK 2 (Robot) | 443 | 124 | 419 | 174 |
+  | PJ MK 2 (Robot) | 445 | 125 | 421 | 175 |
   | Engine | 1009 | 184 | 820 | 239 |
 
   Totals are asserted by `Totals_MatchInventorBom`, row counts by `RowCounts_MatchInventorBom` (both in `FixtureTotalsTests`). The row counts confirm that merging by Part Number matches Inventor on these assemblies.
