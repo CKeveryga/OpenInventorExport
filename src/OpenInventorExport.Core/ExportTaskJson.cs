@@ -8,7 +8,7 @@ namespace OpenInventorExport.Core;
 /// <summary>Reads and writes an ExportTask as JSON. Mistakes are errors, never silently ignored.</summary>
 public static class ExportTaskJson
 {
-    private static readonly JsonSerializerOptions Options = new()
+    internal static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
         PropertyNameCaseInsensitive = true,
