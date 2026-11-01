@@ -7,7 +7,15 @@ using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
-/// <summary>The top-level config file. More sections (schema, rollup, columns) are added in later steps.</summary>
+/// <summary>One property column in the BOM table, after File Name and Qty.</summary>
+public class BomColumn
+{
+    public string Name { get; set; } = "";
+    /// <summary>Which Inventor property set the property is in. Default: Design Tracking.</summary>
+    public string Set { get; set; } = PropertySetNames.DesignTracking;
+}
+
+/// <summary>The top-level config file.</summary>
 public class ExportConfig
 {
     public const int CurrentSchemaVersion = 1;
@@ -17,9 +25,17 @@ public class ExportConfig
     public List<ExportTask> Tasks { get; set; } = new();
     /// <summary>Optional. Properties every applicable file should have. Empty = no property check.</summary>
     public List<SchemaProperty> Properties { get; set; } = new();
+    /// <summary>Optional. How the BOM is rolled up. Missing = the defaults of RollupOptions.</summary>
+    public RollupOptions Rollup { get; set; } = new();
+    /// <summary>Optional. Property columns of the BOM table.</summary>
+    public List<BomColumn> BomColumns { get; set; } = new();
 
     /// <summary>The same list as a PropertySchema, ready for PropertySchemaValidator.</summary>
     public PropertySchema ToPropertySchema() => new PropertySchema { Properties = Properties };
+
+    /// <summary>The BOM columns in the form CsvTableWriter takes.</summary>
+    public List<(string Set, string Name)> ToCsvColumns() =>
+        BomColumns.Select(c => (c.Set, c.Name)).ToList();
 }
 
 /// <summary>Reads and writes the config file. Every mistake is an error, never silently ignored.</summary>
@@ -27,7 +43,14 @@ public static class ExportConfigJson
 {
     public static string ToJson(ExportConfig config) =>
         JsonSerializer.Serialize(
-            new ExportConfig { SchemaVersion = ExportConfig.CurrentSchemaVersion, Tasks = config.Tasks, Properties = config.Properties },
+            new ExportConfig
+            {
+                SchemaVersion = ExportConfig.CurrentSchemaVersion,
+                Tasks = config.Tasks,
+                Properties = config.Properties,
+                Rollup = config.Rollup,
+                BomColumns = config.BomColumns
+            },
             ExportTaskJson.Options);
 
     /// <summary>Parses and validates. Throws InvalidDataException listing every problem found.</summary>
@@ -65,7 +88,9 @@ public static class ExportConfigJson
 
         foreach (var task in config.Tasks)
             problems.AddRange(ExportTaskValidator.Validate(task));
-            problems.AddRange(ValidateProperties(config.Properties));
+
+        problems.AddRange(ValidateProperties(config.Properties));
+        problems.AddRange(ValidateColumns(config.BomColumns));
 
         if (problems.Count > 0)
             throw new InvalidDataException("Config file has problems: " + string.Join(" ", problems));
@@ -100,6 +125,27 @@ public static class ExportConfigJson
                      .GroupBy(p => p.Set + "|" + p.Name, StringComparer.OrdinalIgnoreCase)
                      .Where(g => g.Count() > 1))
             problems.Add($"Property '{dup.First().Name}' is listed more than once in '{dup.First().Set}'.");
+
+        return problems;
+    }
+
+    private static List<string> ValidateColumns(List<BomColumn> columns)
+    {
+        var problems = new List<string>();
+
+        foreach (var c in columns)
+        {
+            if (string.IsNullOrWhiteSpace(c.Name))
+                problems.Add("A BOM column has no Name.");
+            if (!KnownSets.Contains(c.Set))
+                problems.Add($"BOM column '{c.Name}': unknown Set '{c.Set}'. Known sets: {string.Join(", ", KnownSets)}.");
+        }
+
+        foreach (var dup in columns
+                     .Where(c => !string.IsNullOrWhiteSpace(c.Name))
+                     .GroupBy(c => c.Set + "|" + c.Name, StringComparer.OrdinalIgnoreCase)
+                     .Where(g => g.Count() > 1))
+            problems.Add($"BOM column '{dup.First().Name}' is listed more than once in '{dup.First().Set}'.");
 
         return problems;
     }

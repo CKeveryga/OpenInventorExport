@@ -179,4 +179,67 @@ public class RollupTests
         Assert.Equal(4, rows.Count);                          // root + Sub + Bolt + Plate
         Assert.Equal(6, rows.Sum(r => r.Quantity));           // previous 5 + root
     }
+
+    private static ComponentRecord WithPn(ComponentRecord c, string pn)
+    {
+        c.SetProperty(PropertySetNames.DesignTracking, "Part Number",
+            new PropertyValue { DataType = PropertyDataType.Text, Value = pn });
+        return c;
+    }
+
+    private static Snapshot TwoFilesOnePartNumber()
+    {
+        var s = new Snapshot();
+        s.Components.Add(Rec("Top.iam", null, "Top.iam", "Assembly", 0));
+        s.Components.Add(WithPn(Rec("Top.iam/A:1", "Top.iam", "A1.ipt", "Part", 1), "X-1"));
+        s.Components.Add(WithPn(Rec("Top.iam/A:2", "Top.iam", "A2.ipt", "Part", 1), "X-1"));
+        return s;
+    }
+
+    [Fact]
+    public void Flat_PartNumberKey_MergesDifferentFilesWithTheSamePartNumber()
+    {
+        var rows = Rollup.Apply(TwoFilesOnePartNumber(),
+            new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false });
+
+        Assert.Equal(2, Assert.Single(rows).Quantity);
+    }
+
+    [Fact]
+    public void Flat_FilePathKey_KeepsDifferentFilesSeparate()
+    {
+        var rows = Rollup.Apply(TwoFilesOnePartNumber(),
+            new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false, Key = RollupKey.FilePath });
+
+        Assert.Equal(2, rows.Count);
+    }
+
+    [Fact]
+    public void PartNumberKey_EmptyPartNumber_FallsBackToTheFile()
+    {
+        // Sample() has no part numbers: Bolt.ipt x4 and Plate.ipt x1 must stay two rows.
+        var rows = Rollup.Apply(Sample(), new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false });
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(4, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
+
+    [Fact]
+    public void Structured_PartNumberKey_MergesWithinAParent_ButListsUnderEachAssembly()
+    {
+        var s = new Snapshot();
+        s.Components.Add(Rec("Top.iam", null, "Top.iam", "Assembly", 0));
+        s.Components.Add(WithPn(Rec("Top.iam/S1:1", "Top.iam", "S1.iam", "Assembly", 1), "S-1"));
+        s.Components.Add(WithPn(Rec("Top.iam/S2:1", "Top.iam", "S2.iam", "Assembly", 1), "S-2"));
+        // S1 holds two different files with the same Part Number; S2 holds one of them.
+        s.Components.Add(WithPn(Rec("Top.iam/S1:1/A:1", "Top.iam/S1:1", "A1.ipt", "Part", 2), "X-1"));
+        s.Components.Add(WithPn(Rec("Top.iam/S1:1/A:2", "Top.iam/S1:1", "A2.ipt", "Part", 2), "X-1"));
+        s.Components.Add(WithPn(Rec("Top.iam/S2:1/A:1", "Top.iam/S2:1", "A1.ipt", "Part", 2), "X-1"));
+
+        var rows = Rollup.Apply(s, new RollupOptions { Mode = RollupMode.Structured });
+
+        var xRows = rows.Where(r => r.Component.Level == 2).ToList();
+        Assert.Equal(2, xRows.Count);   // once under S1, once under S2
+        Assert.Equal(new[] { 1, 2 }, xRows.Select(r => r.Quantity).OrderBy(q => q).ToArray());
+    }
 }

@@ -5,6 +5,8 @@ using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
+public enum RollupKey { PartNumber, FilePath }
+
 public enum RollupMode { Occurrence, Structured, Flat }
 public enum InseparableHandling { AsSingleItem, IncludeChildren }
 
@@ -21,8 +23,19 @@ public class RollupOptions
     /// <summary>Null = Inventor's behavior for the mode: Flat hides children of inseparable assemblies, other modes list them.</summary>
     public InseparableHandling? Inseparable { get; set; }
 
-    public Func<ComponentRecord, string> Key { get; set; } =
-        c => c.FullPath ?? c.FileName;
+    /// <summary>What makes two components the same row. PartNumber matches Inventor's BOM; FilePath lists each file separately.</summary>
+    public RollupKey Key { get; set; } = RollupKey.PartNumber;
+
+    /// <summary>The grouping key of a component under the current Key setting. A missing or empty Part Number falls back to the file path.</summary>
+    public string KeyOf(ComponentRecord c)
+    {
+        if (Key == RollupKey.PartNumber)
+        {
+            string pn = c.FindProperty(PropertySetNames.DesignTracking, "Part Number")?.Value ?? "";
+            if (pn.Length > 0) return "PN:" + pn;
+        }
+        return "File:" + (c.FullPath ?? c.FileName);
+    }
 }
 
 public class ExportRow
@@ -84,7 +97,7 @@ public static class Rollup
                 // Counting occurrences across the whole tree automatically
                 // multiplies quantities through the levels.
                 return candidates
-                    .GroupBy(options.Key)
+                    .GroupBy(options.KeyOf)
                     .Select(g => new ExportRow(g.First(), g.Count(), null))
                     .ToList();
 
@@ -111,7 +124,7 @@ public static class Rollup
             string parentPart = c.ParentPath != null && byPath.TryGetValue(c.ParentPath, out var p)
                 ? StructKey(p)
                 : "";
-            string key = parentPart + "/" + options.Key(c);
+            string key = parentPart + "/" + options.KeyOf(c);
             structKeys[c.OccurrencePath] = key;
             return key;
         }
@@ -125,7 +138,7 @@ public static class Rollup
                 ? StructKey(parent)
                 : "";
 
-            foreach (var child in parentGroup.GroupBy(options.Key))
+            foreach (var child in parentGroup.GroupBy(options.KeyOf))
             {
                 if (!seen.Add((parentKey, child.Key))) continue;
                 rows.Add(new ExportRow(child.First(), child.Count(), parentKey));
