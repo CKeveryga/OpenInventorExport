@@ -183,7 +183,8 @@ internal static class Actions
 /// <summary>Interactive menu: nothing to type on the command line, choices are made while it runs.</summary>
 internal static class Interactive
 {
-    private static string _outRoot = Path.GetFullPath("output");
+    private static string _outRoot = @"C:\dev\OpenInventorExport\output";
+
     private static Snapshot? _snapshot;
     private static string _snapshotSource = "none loaded";
 

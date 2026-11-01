@@ -64,4 +64,16 @@ public class FixtureTotalsTests
         Assert.Equal(partsOnlyRows, BomTotals.PartsOnlyRows(s).Count);
         Assert.Equal(structuredRows, BomTotals.StructuredRows(s).Count);
     }
+
+    [Fact]
+    public void EveryFixture_NonSuppressedComponentsBelowTheRootHaveABomStructure()
+    {
+        foreach (var f in Directory.GetFiles(SnapshotDir(), "*snapshot.json"))
+        {
+            var missing = Load(f).Components
+                .Where(c => c.Level > 0 && !c.IsSuppressed && c.BomStructure == null)
+                .Select(c => c.OccurrencePath).ToList();
+            Assert.True(missing.Count == 0, $"{Path.GetFileName(f)}: {string.Join(", ", missing)}");
+        }
+    }
 }
