@@ -77,6 +77,8 @@ public class Snapshot
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public string? InventorVersion { get; set; }
     public string? SourceFile { get; set; }
+    /// <summary>Full file name of the Inventor project that was active at collection. Null = not recorded (older snapshot, or Inventor would not say). Drawing lookup depends on the active project.</summary>
+    public string? ProjectFile { get; set; }
     public string? ModelState { get; set; }
     public List<ComponentRecord> Components { get; set; } = new();
     public List<SkippedRecord> Skipped { get; set; } = new();

@@ -64,6 +64,7 @@ internal static class Actions
         var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
         PrintPlanCounts(jobs);
         PrintIncompleteWarning(snapshot);
+        PrintProjectWarning(snapshot, jobs);
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
@@ -74,6 +75,7 @@ internal static class Actions
         ThrowIfIncomplete(snapshot);
         var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
         PrintPlanCounts(jobs);
+        PrintProjectWarning(snapshot, jobs);
 
         int planned = jobs.Count(j => j.State == JobState.Planned);
         if (confirm != null && !confirm(planned))
@@ -174,6 +176,24 @@ internal static class Actions
         int n = SnapshotChecks.BlockingProblems(snapshot).Count;
         if (n > 0)
             Console.WriteLine($"WARNING: {n} component(s) could not be read. 'Run exports' will refuse until they are resolved.");
+    }
+
+    /// <summary>
+    /// Warns if drawing exports are planned and the active Inventor project differs from the snapshot's.
+    /// Silent if Inventor is not running or the project is unknown on either side: nothing to compare.
+    /// </summary>
+    private static void PrintProjectWarning(Snapshot snapshot, List<ExportJob> jobs)
+    {
+        if (!jobs.Any(j => j.State == JobState.Planned && j.Output.Source == ExportSource.Drawing))
+            return;
+
+        string? active;
+        try { active = SnapshotCollector.GetActiveProjectFile(); }
+        catch { return; }
+
+        var warning = SnapshotChecks.ProjectMismatch(snapshot, active);
+        if (warning != null)
+            Console.WriteLine(warning);
     }
 }
 

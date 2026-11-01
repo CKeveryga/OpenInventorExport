@@ -14,6 +14,13 @@ public static class SnapshotCollector
     }
 
     /// <summary>
+    /// Full file name of the project active in the running Inventor, or null if it cannot be read.
+    /// Throws if Inventor is not running (callers that only want a best-effort check should catch).
+    /// </summary>
+    public static string? GetActiveProjectFile() =>
+        AssemblyTraverser.TryGetProjectFile(InventorConnection.GetRunningInventor());
+
+    /// <summary>
     /// Reads Inventor's own Parts Only BOM: file path -> total quantity.
     /// Note: enabling the BOM view can mark the assembly as modified (do not save it).
     /// </summary>

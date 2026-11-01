@@ -1,0 +1,41 @@
+{
+	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
+	"SchemaVersion": 1,
+
+	"Tasks": [
+		{
+			"Name": "Drawings",
+			"FolderTemplate": "{task}/{format}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part", "SheetMetal" ]
+			},
+			"Outputs": [
+				{
+					"Format": "Step",
+					"Source": "Model"
+				}
+			]
+		}
+	],
+
+	"Properties": [
+		{
+			"Set": "Inventor User Defined Properties",
+			"Name": "Finish",
+			"DataType": "Text",
+			"Required": true
+		}
+	],
+
+	"Rollup": {
+		"Mode": "Flat",
+		"IncludeAssemblies": false
+	},
+
+	"BomColumns": [
+		{ "Name": "Part Number" },
+		{ "Name": "Description" },
+		{ "Name": "Material" }
+	]
+}

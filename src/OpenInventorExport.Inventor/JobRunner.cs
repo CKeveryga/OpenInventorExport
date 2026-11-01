@@ -47,7 +47,8 @@ public static class JobRunner
                 if (drawingPath == null)
                 {
                     result.Status = ExportStatus.NoDrawing;
-                    result.Detail = "No .idw or .dwg with the model's name found on the project paths";
+                    result.Detail = "No .idw or .dwg with the model's name found on the project paths " +
+                                    $"(active project: {DrawingLocator.ActiveProjectName(app)})";
                     return;
                 }
                 sourcePath = drawingPath;

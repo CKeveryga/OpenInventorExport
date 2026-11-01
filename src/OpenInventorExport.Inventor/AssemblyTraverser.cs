@@ -34,6 +34,7 @@ public class AssemblyTraverser
 
         _snapshot.InventorVersion = app.SoftwareVersion.DisplayName;
         _snapshot.SourceFile = asm.FullFileName;
+        _snapshot.ProjectFile = TryGetProjectFile(app);
         _snapshot.ModelState = TryGetModelState(asm);
 
         // Record the top-level assembly itself as level 0
@@ -237,6 +238,13 @@ public class AssemblyTraverser
     private static string? TryGetModelState(Inv.AssemblyDocument asm)
     {
         try { return asm.ComponentDefinition.ModelStates.ActiveModelState.Name; }
+        catch { return null; }
+    }
+
+    /// <summary>The active project's full file name, or null if Inventor would not say.</summary>
+    internal static string? TryGetProjectFile(Inv.Application app)
+    {
+        try { return app.DesignProjectManager.ActiveDesignProject.FullFileName; }
         catch { return null; }
     }
 

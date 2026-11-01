@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using OpenInventorExport.Core.Model;
 
@@ -9,6 +10,7 @@ public static class SnapshotSummary
     public static IEnumerable<string> Describe(Snapshot s)
     {
         yield return $"Total components: {s.Components.Count}";
+        yield return $"Project: {(s.ProjectFile == null ? "(not recorded)" : Path.GetFileName(s.ProjectFile))}";
 
         yield return $"Unique files: {s.Components.Where(c => c.FullPath != null).Select(c => c.FullPath!.ToLowerInvariant()).Distinct().Count()}";
         yield return $"Unique assemblies: {s.Components.Where(c => c.DocumentType == "Assembly" && c.FullPath != null).Select(c => c.FullPath!.ToLowerInvariant()).Distinct().Count()}";
