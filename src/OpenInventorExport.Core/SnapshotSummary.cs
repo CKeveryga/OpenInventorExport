@@ -13,7 +13,8 @@ public static class SnapshotSummary
         yield return $"Unique files: {s.Components.Where(c => c.FullPath != null).Select(c => c.FullPath!.ToLowerInvariant()).Distinct().Count()}";
         yield return $"Unique assemblies: {s.Components.Where(c => c.DocumentType == "Assembly" && c.FullPath != null).Select(c => c.FullPath!.ToLowerInvariant()).Distinct().Count()}";
 
-        yield return $"Content Center parts: {s.Components.Count(c => c.IsContentCenter == true)} (flag not recorded on {s.Components.Count(c => c.IsContentCenter == null)} components)";
+        var partTypes = new[] { DocumentTypes.Part, DocumentTypes.SheetMetal };
+        yield return $"Content Center parts: {s.Components.Count(c => c.IsContentCenter == true)} (flag not recorded on {s.Components.Count(c => c.IsContentCenter == null && partTypes.Contains(c.DocumentType))} parts)";
 
         var groups = s.Components
             .GroupBy(c => $"{c.DocumentType} | BOM: {c.BomStructure ?? "(root)"} | Virtual: {c.IsVirtual}")
