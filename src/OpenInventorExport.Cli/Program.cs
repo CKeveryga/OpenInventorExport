@@ -51,6 +51,7 @@ internal static class Actions
     {
         var jobs = ExportPlanner.Plan(snapshot, SampleTask(), outRoot);
         PrintPlanCounts(jobs);
+        PrintIncompleteWarning(snapshot);
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
@@ -58,6 +59,7 @@ internal static class Actions
     /// <param name="confirm">Optional last check, given the number of planned jobs. Return false to cancel.</param>
     public static void Export(Snapshot snapshot, string outRoot, Func<int, bool>? confirm = null)
     {
+        ThrowIfIncomplete(snapshot);
         var jobs = ExportPlanner.Plan(snapshot, SampleTask(), outRoot);
         PrintPlanCounts(jobs);
 
@@ -178,6 +180,27 @@ internal static class Actions
     private static void PrintPlanCounts(List<ExportJob> jobs) =>
         Console.WriteLine($"Planned: {jobs.Count(j => j.State == JobState.Planned)}, " +
                           $"Conflicts: {jobs.Count(j => j.State == JobState.Conflict)}");
+
+    /// <summary>Components that could not be read mean the component list is incomplete, so nothing is exported.</summary>
+    private static void ThrowIfIncomplete(Snapshot snapshot)
+    {
+        var problems = SnapshotChecks.BlockingProblems(snapshot);
+        if (problems.Count == 0) return;
+
+        var lines = problems.Take(10).Select(k => $"  [{k.Reason}] {k.OccurrencePath} {k.Detail}");
+        string more = problems.Count > 10 ? Environment.NewLine + $"  ...and {problems.Count - 10} more." : "";
+        throw new InvalidOperationException(
+            $"Export blocked: {problems.Count} component(s) could not be read, so the component list is incomplete." +
+            Environment.NewLine + string.Join(Environment.NewLine, lines) + more +
+            Environment.NewLine + "Resolve the files in Inventor, collect again, then export.");
+    }
+
+    private static void PrintIncompleteWarning(Snapshot snapshot)
+    {
+        int n = SnapshotChecks.BlockingProblems(snapshot).Count;
+        if (n > 0)
+            Console.WriteLine($"WARNING: {n} component(s) could not be read. 'Run exports' will refuse until they are resolved.");
+    }
 }
 
 /// <summary>Interactive menu: nothing to type on the command line, choices are made while it runs.</summary>

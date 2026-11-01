@@ -43,7 +43,7 @@ public static class PropertySchemaValidator
         var issues = new List<PropertyIssue>();
 
         var files = snapshot.Components
-            .Where(c => c.FullPath != null && !c.IsSuppressed && !c.IsVirtual)
+            .Where(c => c.FullPath != null && !c.IsSuppressed && !c.IsVirtual && !c.IsUnresolved)
             .GroupBy(c => PathUtil.StripMemberSuffix(c.FullPath!), StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First());
 
