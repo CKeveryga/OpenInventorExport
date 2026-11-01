@@ -25,6 +25,11 @@ public class ExportSelection
     /// <summary>Empty = any type. Otherwise e.g. "SheetMetal", "Part", "Assembly".</summary>
     public List<string> DocumentTypes { get; set; } = new();
     public List<PropertyFilter> Filters { get; set; } = new();
+    /// <summary>
+    /// Per-structure overrides. Empty = Inventor's defaults: Phantom and Reference items are left out,
+    /// everything else is selected, children are kept. Example: Purchased with Children Exclude.
+    /// </summary>
+    public List<BomStructureRule> BomStructures { get; set; } = new();
 }
 
 /// <summary>One format to produce for each selected component.</summary>

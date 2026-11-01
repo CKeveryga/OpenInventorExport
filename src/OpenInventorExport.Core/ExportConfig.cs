@@ -91,6 +91,7 @@ public static class ExportConfigJson
 
         problems.AddRange(ValidateProperties(config.Properties));
         problems.AddRange(ValidateColumns(config.BomColumns));
+        problems.AddRange(BomStructurePolicy.Validate(config.Rollup.BomStructures, "Rollup"));
 
         if (problems.Count > 0)
             throw new InvalidDataException("Config file has problems: " + string.Join(" ", problems));

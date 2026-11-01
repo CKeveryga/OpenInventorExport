@@ -22,13 +22,15 @@ public class ExportJob
 
 public static class ExportPlanner
 {
-    public static List<ExportJob> Plan(Snapshot snapshot, ExportTask task, string outputRoot)
+    /// <param name="exclusions">Optional. Receives one record per unique file the task's rules left out.</param>
+    public static List<ExportJob> Plan(Snapshot snapshot, ExportTask task, string outputRoot,
+        List<ExclusionRecord>? exclusions = null)
     {
         var problems = ExportTaskValidator.Validate(task);
         if (problems.Count > 0)
             throw new ArgumentException(string.Join(" ", problems));
 
-        var selected = Select(snapshot, task.Selection);
+        var selected = Select(snapshot, task, exclusions);
         var jobs = new List<ExportJob>();
         var claimed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // output path -> model that owns it
 
@@ -70,11 +72,12 @@ public static class ExportPlanner
     /// Plans every task and marks an output file that two different tasks would both write as
     /// a Conflict, so nothing is overwritten within a run.
     /// </summary>
-    public static List<ExportJob> PlanAll(Snapshot snapshot, IEnumerable<ExportTask> tasks, string outputRoot)
+    public static List<ExportJob> PlanAll(Snapshot snapshot, IEnumerable<ExportTask> tasks, string outputRoot,
+        List<ExclusionRecord>? exclusions = null)
     {
         var jobs = new List<ExportJob>();
         foreach (var task in tasks)
-            jobs.AddRange(Plan(snapshot, task, outputRoot));
+            jobs.AddRange(Plan(snapshot, task, outputRoot, exclusions));
 
         var claimed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var job in jobs.Where(j => j.State == JobState.Planned))
@@ -92,19 +95,72 @@ public static class ExportPlanner
         return jobs;
     }
 
-    /// <summary>One representative component per unique model file that passes the selection.</summary>
-    private static List<ComponentRecord> Select(Snapshot snapshot, ExportSelection sel)
+    /// <summary>
+    /// One representative component per unique model file that passes the selection. A file is left out
+    /// only if every one of its occurrences is rejected; the first rejection is the reason reported.
+    /// Virtual and unresolved components have no exportable file and are not reported here.
+    /// </summary>
+    private static List<ComponentRecord> Select(Snapshot snapshot, ExportTask task, List<ExclusionRecord>? exclusions)
     {
-        return snapshot.Components
-            .Where(c => c.FullPath != null && !c.IsSuppressed && !c.IsVirtual && !c.IsUnresolved)
-            .Where(c => sel.Scope == ExportScope.AllUniqueFiles || c.Level == 0)
-            .Where(c => sel.DocumentTypes.Count == 0 ||
-                        sel.DocumentTypes.Contains(c.DocumentType, StringComparer.OrdinalIgnoreCase))
-            .Where(c => sel.Filters.All(f => Passes(c, f)))
+        var sel = task.Selection;
+        var policy = new BomStructurePolicy(sel.BomStructures);
+        var verdicts = BomVisibility.Evaluate(snapshot, policy, excludeSuppressed: true, inseparableDefault: ChildHandling.Include);
+
+        var files = snapshot.Components
+            .Where(c => c.FullPath != null && !c.IsVirtual && !c.IsUnresolved)
             .GroupBy(c => PathUtil.StripMemberSuffix(c.FullPath!), StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderBy(c => c.FullPath, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+        var chosen = new List<ComponentRecord>();
+        foreach (var file in files)
+        {
+            ComponentRecord? pick = null;
+            ExclusionRecord? firstRejection = null;
+
+            foreach (var c in file)
+            {
+                var rejection = Reject(c, verdicts[c], sel);
+                if (rejection == null)
+                {
+                    pick = c;
+                    break;
+                }
+                if (firstRejection == null)
+                    firstRejection = new ExclusionRecord
+                    {
+                        Context = task.Name,
+                        OccurrencePath = c.OccurrencePath,
+                        FileName = c.FileName,
+                        Reason = rejection.Value.Reason,
+                        Detail = rejection.Value.Detail
+                    };
+            }
+
+            if (pick != null) chosen.Add(pick);
+            else if (firstRejection != null) exclusions?.Add(firstRejection);
+        }
+        return chosen;
+    }
+
+    /// <summary>Why this occurrence does not pass the selection, or null if it passes.</summary>
+    private static (ExclusionReason Reason, string? Detail)? Reject(
+        ComponentRecord c, BomVisibility.Verdict verdict, ExportSelection sel)
+    {
+        if (!verdict.Listed)
+            return (verdict.Reason, verdict.Detail);
+
+        if (sel.Scope == ExportScope.TopLevelOnly && c.Level != 0)
+            return (ExclusionReason.Scope, "Not the top-level assembly");
+
+        if (sel.DocumentTypes.Count > 0 &&
+            !sel.DocumentTypes.Contains(c.DocumentType, StringComparer.OrdinalIgnoreCase))
+            return (ExclusionReason.DocumentType, $"{c.DocumentType} is not in the selected types");
+
+        foreach (var f in sel.Filters)
+            if (!Passes(c, f))
+                return (ExclusionReason.PropertyFilter, $"{f.Property} {f.Operator} \"{f.Value}\" is not met");
+
+        return null;
     }
 
     private static bool Passes(ComponentRecord c, PropertyFilter f)

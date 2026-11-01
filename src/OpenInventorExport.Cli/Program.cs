@@ -61,10 +61,12 @@ internal static class Actions
 
     public static void Plan(Snapshot snapshot, ExportConfig config, string outRoot)
     {
-        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
+        var exclusions = new List<ExclusionRecord>();
+        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
         PrintIncompleteWarning(snapshot);
         PrintProjectWarning(snapshot, jobs);
+        PrintExclusions(exclusions);
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
@@ -73,9 +75,11 @@ internal static class Actions
     public static void Export(Snapshot snapshot, ExportConfig config, string outRoot, Func<int, bool>? confirm = null)
     {
         ThrowIfIncomplete(snapshot);
-        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
+        var exclusions = new List<ExclusionRecord>();
+        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
         PrintProjectWarning(snapshot, jobs);
+        PrintExclusions(exclusions);
 
         int planned = jobs.Count(j => j.State == JobState.Planned);
         if (confirm != null && !confirm(planned))
@@ -85,6 +89,7 @@ internal static class Actions
         }
 
         Directory.CreateDirectory(outRoot);
+        WriteExclusions(exclusions, Path.Combine(outRoot, "export-excluded.csv"));
         var results = JobRunner.Run(jobs, r =>
             Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
 
@@ -116,14 +121,42 @@ internal static class Actions
 
     public static void Bom(Snapshot snapshot, ExportConfig config, string outRoot)
     {
-        var rows = Rollup.Apply(snapshot, config.Rollup);
+        var exclusions = new List<ExclusionRecord>();
+        var rows = Rollup.Apply(snapshot, config.Rollup, exclusions);
 
         Directory.CreateDirectory(outRoot);
-        string path = Path.Combine(outRoot, $"bom-{config.Rollup.Mode.ToString().ToLowerInvariant()}.csv");
+        string mode = config.Rollup.Mode.ToString().ToLowerInvariant();
+        string path = Path.Combine(outRoot, $"bom-{mode}.csv");
         File.WriteAllText(path, CsvTableWriter.Write(rows, config.ToCsvColumns()), new UTF8Encoding(true));
         Console.WriteLine($"Rollup: {config.Rollup.Mode}, key: {config.Rollup.Key}");
         Console.WriteLine($"Rows: {rows.Count}, total quantity: {rows.Sum(r => r.Quantity)}");
         Console.WriteLine($"Written: {path}");
+
+        PrintExclusions(exclusions);
+        WriteExclusions(exclusions, Path.Combine(outRoot, $"bom-{mode}-excluded.csv"));
+    }
+
+    private static void PrintExclusions(List<ExclusionRecord> exclusions)
+    {
+        if (exclusions.Count == 0)
+        {
+            Console.WriteLine("Left out by rules: nothing.");
+            return;
+        }
+        foreach (var line in ExclusionReport.Summary(exclusions))
+            Console.WriteLine("Left out by rules: " + line);
+    }
+
+    /// <summary>Writes the exclusion report. With nothing excluded, an old report from an earlier run is removed so it cannot mislead.</summary>
+    private static void WriteExclusions(List<ExclusionRecord> exclusions, string path)
+    {
+        if (exclusions.Count == 0)
+        {
+            if (File.Exists(path)) File.Delete(path);
+            return;
+        }
+        File.WriteAllText(path, ExclusionReport.ToCsv(exclusions), new UTF8Encoding(true));
+        Console.WriteLine($"Exclusion report: {path}");
     }
 
     /// <summary>Looks for config/&lt;name&gt; in the exe's folder and every folder above it.</summary>

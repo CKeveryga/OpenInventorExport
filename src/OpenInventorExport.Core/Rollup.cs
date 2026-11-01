@@ -16,11 +16,18 @@ public class RollupOptions
     /// <summary>Adds the top-level assembly (Level 0) as a row with qty 1. Off by default because Inventor's BOM does not list it. Has no effect when IncludeAssemblies is false.</summary>
     public bool IncludeRoot { get; set; } = false;
     public bool IncludeAssemblies { get; set; } = true;
-    public bool ExcludePhantom { get; set; } = true;
-    public bool ExcludeReference { get; set; } = true;
     public bool ExcludeSuppressed { get; set; } = true;
 
-    /// <summary>Null = Inventor's behavior for the mode: Flat hides children of inseparable assemblies, other modes list them.</summary>
+    /// <summary>
+    /// Per-structure overrides. Empty = Inventor's defaults: Phantom and Reference items are left out,
+    /// everything else is listed, children are kept.
+    /// </summary>
+    public List<BomStructureRule> BomStructures { get; set; } = new();
+
+    /// <summary>
+    /// Null = Inventor's behavior for the mode: Flat hides children of inseparable assemblies, other modes list them.
+    /// A BomStructures rule for Inseparable with Children set takes precedence over this.
+    /// </summary>
     public InseparableHandling? Inseparable { get; set; }
 
     /// <summary>What makes two components the same row. PartNumber matches Inventor's BOM; FilePath lists each file separately.</summary>
@@ -54,39 +61,49 @@ public class ExportRow
 
 public static class Rollup
 {
-    public static List<ExportRow> Apply(Snapshot snapshot, RollupOptions options)
+    /// <param name="exclusions">Optional. Receives one record per occurrence that a rule left out.</param>
+    public static List<ExportRow> Apply(Snapshot snapshot, RollupOptions options, List<ExclusionRecord>? exclusions = null)
     {
         var inseparable = options.Inseparable
             ?? (options.Mode == RollupMode.Flat ? InseparableHandling.AsSingleItem : InseparableHandling.IncludeChildren);
+        var inseparableDefault = inseparable == InseparableHandling.IncludeChildren
+            ? ChildHandling.Include
+            : ChildHandling.Exclude;
 
-        // The top-level assembly (Level 0) is the thing being exported, not a row in it.
-        var byPath = snapshot.Components
-            .GroupBy(c => c.OccurrencePath)
-            .ToDictionary(g => g.Key, g => g.First());
+        var policy = new BomStructurePolicy(options.BomStructures);
+        bool inseparableAsSingleItem =
+            policy.ChildrenOf(BomStructureKind.Inseparable, inseparableDefault) == ChildHandling.Exclude;
 
-        bool InsideInseparable(ComponentRecord c)
-        {
-            var current = c;
-            while (current.ParentPath != null && byPath.TryGetValue(current.ParentPath, out var parent))
-            {
-                if (parent.BomStructure == "kInseparableBOMStructure") return true;
-                current = parent;
-            }
-            return false;
-        }
+        var verdicts = BomVisibility.Evaluate(snapshot, policy, options.ExcludeSuppressed, inseparableDefault);
 
         bool KeptInseparableAssembly(ComponentRecord c) =>
-            c.BomStructure == "kInseparableBOMStructure"
-            && inseparable == InseparableHandling.AsSingleItem;
+            BomStructurePolicy.KindOf(c.BomStructure) == BomStructureKind.Inseparable && inseparableAsSingleItem;
 
-        var candidates = snapshot.Components
-            .Where(c => c.Level > 0 || options.IncludeRoot)
-            .Where(c => !(options.ExcludePhantom && c.BomStructure == "kPhantomBOMStructure"))
-            .Where(c => !(options.ExcludeReference && c.BomStructure == "kReferenceBOMStructure"))
-            .Where(c => !(options.ExcludeSuppressed && c.IsSuppressed))
-            .Where(c => inseparable == InseparableHandling.IncludeChildren || !InsideInseparable(c))
-            .Where(c => options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptInseparableAssembly(c))
-            .ToList();
+        // The top-level assembly (Level 0) is the thing being exported, not a row in it.
+        var candidates = new List<ComponentRecord>();
+        foreach (var c in snapshot.Components)
+        {
+            if (c.Level == 0 && !options.IncludeRoot) continue;
+
+            var verdict = verdicts[c];
+            if (!verdict.Listed)
+            {
+                exclusions?.Add(new ExclusionRecord
+                {
+                    Context = "BOM",
+                    OccurrencePath = c.OccurrencePath,
+                    FileName = c.FileName,
+                    Reason = verdict.Reason,
+                    Detail = verdict.Detail
+                });
+                continue;
+            }
+
+            if (!(options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptInseparableAssembly(c)))
+                continue;
+
+            candidates.Add(c);
+        }
 
         switch (options.Mode)
         {
@@ -110,7 +127,7 @@ public static class Rollup
     }
 
     private static List<ExportRow> Structured(
-    Snapshot snapshot, List<ComponentRecord> candidates, RollupOptions options)
+        Snapshot snapshot, List<ComponentRecord> candidates, RollupOptions options)
     {
         var byPath = snapshot.Components
             .GroupBy(c => c.OccurrencePath)
