@@ -53,4 +53,15 @@ public class FixtureTotalsTests
             Assert.True(unknown.Count == 0, $"{Path.GetFileName(f)}: {string.Join(", ", unknown)}");
         }
     }
+
+    // Expected values are the row counts of Inventor's own BOM views, not this tool's output.
+    [Theory]
+    [InlineData("robot-snapshot.json", 124, 174)]
+    [InlineData("engine-snapshot.json", 184, 239)]
+    public void RowCounts_MatchInventorBom(string file, int partsOnlyRows, int structuredRows)
+    {
+        var s = Load(Path.Combine(SnapshotDir(), file));
+        Assert.Equal(partsOnlyRows, BomTotals.PartsOnlyRows(s).Count);
+        Assert.Equal(structuredRows, BomTotals.StructuredRows(s).Count);
+    }
 }
