@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using OpenInventorExport.Core;
 using OpenInventorExport.Core.Model;
 using OpenInventorExport.Inventor;
@@ -12,6 +13,8 @@ return args.Length == 0 ? Interactive.Run() : Cli.Run(args);
 /// </summary>
 internal static class Actions
 {
+    public const string DefaultConfigName = "export.config.json";
+
     public static Snapshot Collect(string outRoot)
     {
         Directory.CreateDirectory(outRoot);
@@ -25,6 +28,15 @@ internal static class Actions
     public static Snapshot Load(string file) =>
         SnapshotJson.FromJson(File.ReadAllText(file))
         ?? throw new InvalidDataException($"Could not read a snapshot from {file}.");
+
+    /// <summary>
+    /// Reads and validates a config file. Throws InvalidDataException listing every problem.
+    /// The returned config holds resolved absolute paths: never write it back to disk.
+    /// </summary>
+    public static ExportConfig LoadConfig(string path) => ExportConfigFile.Load(path);
+
+    /// <summary>config/export.config.json, found by walking up from the exe's folder. Null if absent.</summary>
+    public static string? FindDefaultConfig() => FindConfigFile(DefaultConfigName);
 
     public static void Summary(Snapshot snapshot)
     {
@@ -47,20 +59,20 @@ internal static class Actions
         }
     }
 
-    public static void Plan(Snapshot snapshot, string outRoot)
+    public static void Plan(Snapshot snapshot, ExportConfig config, string outRoot)
     {
-        var jobs = ExportPlanner.Plan(snapshot, SampleTask(), outRoot);
+        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
         PrintPlanCounts(jobs);
         PrintIncompleteWarning(snapshot);
         foreach (var j in jobs)
-            Console.WriteLine($"[{j.State}] {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
+            Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
 
     /// <param name="confirm">Optional last check, given the number of planned jobs. Return false to cancel.</param>
-    public static void Export(Snapshot snapshot, string outRoot, Func<int, bool>? confirm = null)
+    public static void Export(Snapshot snapshot, ExportConfig config, string outRoot, Func<int, bool>? confirm = null)
     {
         ThrowIfIncomplete(snapshot);
-        var jobs = ExportPlanner.Plan(snapshot, SampleTask(), outRoot);
+        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot);
         PrintPlanCounts(jobs);
 
         int planned = jobs.Count(j => j.State == JobState.Planned);
@@ -72,7 +84,7 @@ internal static class Actions
 
         Directory.CreateDirectory(outRoot);
         var results = JobRunner.Run(jobs, r =>
-            Console.WriteLine($"[{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
+            Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
 
         // UTF-8 with BOM so Excel opens the CSV correctly.
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
@@ -83,24 +95,15 @@ internal static class Actions
         Console.WriteLine($"Log written to: {outRoot}");
     }
 
-    public static void Props(Snapshot snapshot)
+    public static void Props(Snapshot snapshot, ExportConfig config)
     {
-        // Hard-coded test schema until the config format exists.
-        var schema = new PropertySchema
+        if (config.Properties.Count == 0)
         {
-            Properties =
-            {
-                new SchemaProperty
-                {
-                    Set = PropertySetNames.UserDefined,
-                    Name = "Finish",
-                    DataType = PropertyDataType.Text,
-                    Required = true
-                }
-            }
-        };
+            Console.WriteLine("The config has no Properties section, so there is nothing to check.");
+            return;
+        }
 
-        var issues = PropertySchemaValidator.Validate(snapshot, schema);
+        var issues = PropertySchemaValidator.Validate(snapshot, config.ToPropertySchema());
         foreach (var i in issues)
             Console.WriteLine($"[{i.Kind}] {Path.GetFileName(i.FullPath)} {i.Set} / {i.Property} {i.Detail}");
         foreach (var g in issues.GroupBy(i => i.Kind))
@@ -109,45 +112,16 @@ internal static class Actions
             Console.WriteLine("No property issues.");
     }
 
-    public static void Bom(Snapshot snapshot, string outRoot)
+    public static void Bom(Snapshot snapshot, ExportConfig config, string outRoot)
     {
-        var rows = Rollup.Apply(snapshot, new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false });
-        var columns = new (string Set, string Name)[]
-        {
-            (PropertySetNames.DesignTracking, "Part Number"),
-            (PropertySetNames.DesignTracking, "Description"),
-            (PropertySetNames.DesignTracking, "Material")
-        };
+        var rows = Rollup.Apply(snapshot, config.Rollup);
 
         Directory.CreateDirectory(outRoot);
-        string path = Path.Combine(outRoot, "bom-flat.csv");
-        File.WriteAllText(path, CsvTableWriter.Write(rows, columns), new UTF8Encoding(true));
+        string path = Path.Combine(outRoot, $"bom-{config.Rollup.Mode.ToString().ToLowerInvariant()}.csv");
+        File.WriteAllText(path, CsvTableWriter.Write(rows, config.ToCsvColumns()), new UTF8Encoding(true));
+        Console.WriteLine($"Rollup: {config.Rollup.Mode}, key: {config.Rollup.Key}");
         Console.WriteLine($"Rows: {rows.Count}, total quantity: {rows.Sum(r => r.Quantity)}");
         Console.WriteLine($"Written: {path}");
-    }
-
-    /// <summary>Hard-coded sample task until the config file format exists (roadmap #3).</summary>
-    private static ExportTask SampleTask()
-    {
-        // One-sheet ini files (ALL SHEETS=No), saved from Inventor's DWG/DXF dialogs.
-        string? dwgIni = FindConfigFile("dwg-one-sheet.ini");
-        string? dxfIni = FindConfigFile("dxf-one-sheet.ini");
-        if (dwgIni == null || dxfIni == null)
-            Console.WriteLine("Warning: config/dwg-one-sheet.ini or config/dxf-one-sheet.ini not found; " +
-                              "DWG/DXF will use the translator's last-used sheet setting.");
-
-        return new ExportTask
-        {
-            Name = "Drawings",
-            FolderTemplate = "{task}/{format}",
-            Selection = { DocumentTypes = { "Part", "SheetMetal" } },
-            Outputs =
-            {
-                new OutputSpec { Format = ExportFormat.Pdf, Source = ExportSource.Drawing, PdfSheets = PdfSheetMode.AllInOne },
-                new OutputSpec { Format = ExportFormat.Dwg, Source = ExportSource.Drawing, IniFile = dwgIni },
-                new OutputSpec { Format = ExportFormat.Dxf, Source = ExportSource.Drawing, IniFile = dxfIni }
-            }
-        };
     }
 
     /// <summary>Looks for config/&lt;name&gt; in the exe's folder and every folder above it.</summary>
@@ -211,9 +185,14 @@ internal static class Interactive
     private static Snapshot? _snapshot;
     private static string _snapshotSource = "none loaded";
 
+    private static ExportConfig? _config;
+    private static string? _configPath;
+    private static string _configSource = "none loaded";
+
     public static int Run()
     {
         Console.WriteLine("OpenInventorExport (read-only: never writes to Inventor files)");
+        TryLoadDefaultConfig();
         while (true)
         {
             PrintMenu();
@@ -239,6 +218,7 @@ internal static class Interactive
         Console.WriteLine("----------------------------------------------");
         Console.WriteLine($" Output folder: {_outRoot}");
         Console.WriteLine($" Snapshot:      {_snapshotSource}");
+        Console.WriteLine($" Config:        {_configSource}");
         Console.WriteLine("----------------------------------------------");
         Console.WriteLine(" 1  Collect snapshot from running Inventor");
         Console.WriteLine(" 2  Load a saved snapshot");
@@ -246,9 +226,10 @@ internal static class Interactive
         Console.WriteLine(" 4  Plan exports (dry run, exports nothing)");
         Console.WriteLine(" 5  Run exports");
         Console.WriteLine(" 6  Check properties");
-        Console.WriteLine(" 7  Write BOM CSV (parts only)");
+        Console.WriteLine(" 7  Write BOM CSV");
         Console.WriteLine(" 8  Totals for saved snapshots");
         Console.WriteLine(" 9  Change output folder");
+        Console.WriteLine(" 10 Load (or reload) a config file");
         Console.WriteLine(" Q  Quit");
         Console.Write("Choose: ");
     }
@@ -260,21 +241,79 @@ internal static class Interactive
             case "1": Collect(); return true;
             case "2": LoadSaved(); return true;
             case "3": { var s = EnsureSnapshot(); if (s != null) Actions.Summary(s); return true; }
-            case "4": { var s = EnsureSnapshot(); if (s != null) Actions.Plan(s, _outRoot); return true; }
+            case "4":
+                if (TryGetInputs(out var s4, out var c4)) Actions.Plan(s4, c4, _outRoot);
+                return true;
             case "5":
-                {
-                    var s = EnsureSnapshot();
-                    if (s != null)
-                        Actions.Export(s, _outRoot, n =>
-                            Confirm($"Run {n} export jobs now? Inventor must be running. Files go to {_outRoot}"));
-                    return true;
-                }
-            case "6": { var s = EnsureSnapshot(); if (s != null) Actions.Props(s); return true; }
-            case "7": { var s = EnsureSnapshot(); if (s != null) Actions.Bom(s, _outRoot); return true; }
+                if (TryGetInputs(out var s5, out var c5))
+                    Actions.Export(s5, c5, _outRoot, n =>
+                        Confirm($"Run {n} export jobs now? Inventor must be running. Files go to {_outRoot}"));
+                return true;
+            case "6":
+                if (TryGetInputs(out var s6, out var c6)) Actions.Props(s6, c6);
+                return true;
+            case "7":
+                if (TryGetInputs(out var s7, out var c7)) Actions.Bom(s7, c7, _outRoot);
+                return true;
             case "8": Totals(); return true;
             case "9": ChangeOutputFolder(); return true;
+            case "10": LoadConfigMenu(); return true;
             default: return false;
         }
+    }
+
+    // ----------------------------------------------------------- config
+
+    /// <summary>At startup: load config/export.config.json if it exists. A problem is shown, never fatal.</summary>
+    private static void TryLoadDefaultConfig()
+    {
+        string? path = Actions.FindDefaultConfig();
+        if (path == null)
+        {
+            Console.WriteLine($"No config/{Actions.DefaultConfigName} found. Use option 10 to load a config file.");
+            return;
+        }
+        try { LoadConfigFrom(path); }
+        catch (Exception ex) { Console.WriteLine("Config not loaded: " + ex.Message); }
+    }
+
+    /// <summary>Loads and validates; replaces the current config only if the new one is valid.</summary>
+    private static void LoadConfigFrom(string path)
+    {
+        string full = Path.GetFullPath(path);
+        var config = Actions.LoadConfig(full);
+        _config = config;
+        _configPath = full;
+        _configSource = $"{full} ({config.Tasks.Count} task(s))";
+    }
+
+    private static void LoadConfigMenu()
+    {
+        string path = Ask("Config file", _configPath ?? Actions.FindDefaultConfig() ?? "");
+        if (path.Length == 0) return;
+        LoadConfigFrom(path);
+        Console.WriteLine($"Config loaded: {_configSource}");
+    }
+
+    /// <summary>The loaded config, or asks for a file. Null if the user backs out.</summary>
+    private static ExportConfig? EnsureConfig()
+    {
+        if (_config != null) return _config;
+        Console.WriteLine("No config loaded yet.");
+        LoadConfigMenu();
+        return _config;
+    }
+
+    /// <summary>Config first (fail early on a bad file), then the snapshot.</summary>
+    private static bool TryGetInputs(
+        [NotNullWhen(true)] out Snapshot? snapshot,
+        [NotNullWhen(true)] out ExportConfig? config)
+    {
+        snapshot = null;
+        config = EnsureConfig();
+        if (config == null) return false;
+        snapshot = EnsureSnapshot();
+        return snapshot != null;
     }
 
     // ----------------------------------------------------------- snapshot
@@ -376,11 +415,12 @@ internal static class Cli
           snapshot [outDir]           Collect from running Inventor and save snapshot.json.
           plan     [outDir]           Collect, save snapshot, print the export plan. Exports nothing.
           export   [outDir]           Collect, save snapshot, run the plan, write the logs.
-          props    [outDir]           Check properties against the test schema. Report only.
-          bom      [outDir]           Write bom-flat.csv (parts only).
+          props    [outDir]           Check properties against the config's Properties. Report only.
+          bom      [outDir]           Write the BOM CSV (rollup and columns from the config).
 
         Options (plan, export, props, bom):
           --from <snapshot.json>      Use a saved snapshot instead of collecting from Inventor.
+          --config <file.json>        Config file. Default: config/export.config.json.
 
         outDir defaults to ./output. Commands that collect need Inventor running
         with the assembly as the active document.
@@ -430,8 +470,23 @@ internal static class Cli
     private static void RunWithSnapshot(string command, List<string> rest)
     {
         string? from = TakeOption(rest, "--from");
+        string? configPath = TakeOption(rest, "--config");
         if (from != null && command == "snapshot")
             throw new ArgumentException("'snapshot' collects from Inventor, so --from makes no sense here.");
+        if (configPath != null && command == "snapshot")
+            throw new ArgumentException("'snapshot' does not use a config, so --config makes no sense here.");
+
+        // Load the config first: a bad config should fail before anything is collected from Inventor.
+        ExportConfig? config = null;
+        if (command != "snapshot")
+        {
+            string path = configPath
+                ?? Actions.FindDefaultConfig()
+                ?? throw new ArgumentException(
+                    $"No config file. Pass --config <file> or create config/{Actions.DefaultConfigName}.");
+            config = Actions.LoadConfig(path);
+            Console.WriteLine($"Using config: {Path.GetFullPath(path)}");
+        }
 
         string outRoot = Path.GetFullPath(rest.Count > 0 ? rest[0] : "output");
         Directory.CreateDirectory(outRoot);
@@ -450,10 +505,10 @@ internal static class Cli
         switch (command)
         {
             case "snapshot": Actions.Summary(snapshot); break;
-            case "plan": Actions.Plan(snapshot, outRoot); break;
-            case "export": Actions.Export(snapshot, outRoot); break;
-            case "props": Actions.Props(snapshot); break;
-            case "bom": Actions.Bom(snapshot, outRoot); break;
+            case "plan": Actions.Plan(snapshot, config!, outRoot); break;
+            case "export": Actions.Export(snapshot, config!, outRoot); break;
+            case "props": Actions.Props(snapshot, config!); break;
+            case "bom": Actions.Bom(snapshot, config!, outRoot); break;
         }
     }
 

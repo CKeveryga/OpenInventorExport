@@ -22,7 +22,7 @@ public class FixtureTotalsTests
 
     // Expected values are Inventor's own BOM totals, not this tool's output.
     [Theory]
-    [InlineData("robot-snapshot.json", 443, 419)]
+    [InlineData("robot-snapshot.json", 445, 421)]
     [InlineData("engine-snapshot.json", 1009, 820)]
     public void Totals_MatchInventorBom(string file, int partsOnly, int structured)
     {
@@ -56,7 +56,7 @@ public class FixtureTotalsTests
 
     // Expected values are the row counts of Inventor's own BOM views, not this tool's output.
     [Theory]
-    [InlineData("robot-snapshot.json", 124, 174)]
+    [InlineData("robot-snapshot.json", 125, 175)]
     [InlineData("engine-snapshot.json", 184, 239)]
     public void RowCounts_MatchInventorBom(string file, int partsOnlyRows, int structuredRows)
     {

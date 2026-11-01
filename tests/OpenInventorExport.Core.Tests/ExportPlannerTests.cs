@@ -121,4 +121,25 @@ public class ExportPlannerTests
         var problems = ExportTaskValidator.Validate(task);
         Assert.Equal(2, problems.Count);
     }
+
+    [Fact]
+    public void PlanAll_SameOutputFromTwoTasks_IsReportedAsConflict()
+    {
+        var s = new Snapshot();
+        s.Components.Add(Rec(@"C:\x\A.ipt", "Part"));
+
+        static ExportTask T(string name) => new ExportTask
+        {
+            Name = name,
+            FolderTemplate = "shared",   // no {task}, so both tasks write to the same folder
+            Outputs = { new OutputSpec { Format = ExportFormat.Step, Source = ExportSource.Model } }
+        };
+
+        var jobs = ExportPlanner.PlanAll(s, new[] { T("One"), T("Two") }, @"C:\out");
+
+        Assert.Equal(2, jobs.Count);
+        Assert.Equal(1, jobs.Count(j => j.State == JobState.Planned));
+        var conflict = jobs.Single(j => j.State == JobState.Conflict);
+        Assert.Contains("One", conflict.Detail);
+    }
 }
