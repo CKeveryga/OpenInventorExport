@@ -66,6 +66,32 @@ public static class ExportPlanner
         return jobs;
     }
 
+    /// <summary>
+    /// Plans every task and marks an output file that two different tasks would both write as
+    /// a Conflict, so nothing is overwritten within a run.
+    /// </summary>
+    public static List<ExportJob> PlanAll(Snapshot snapshot, IEnumerable<ExportTask> tasks, string outputRoot)
+    {
+        var jobs = new List<ExportJob>();
+        foreach (var task in tasks)
+            jobs.AddRange(Plan(snapshot, task, outputRoot));
+
+        var claimed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var job in jobs.Where(j => j.State == JobState.Planned))
+        {
+            if (claimed.TryGetValue(job.OutputPath, out var owner))
+            {
+                job.State = JobState.Conflict;
+                job.Detail = $"Same output file as {owner}";
+            }
+            else
+            {
+                claimed[job.OutputPath] = $"task '{job.TaskName}' ({Path.GetFileName(job.ModelPath)})";
+            }
+        }
+        return jobs;
+    }
+
     /// <summary>One representative component per unique model file that passes the selection.</summary>
     private static List<ComponentRecord> Select(Snapshot snapshot, ExportSelection sel)
     {
