@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using OpenInventorExport.Core;
 using OpenInventorExport.Core.Model;
 using Xunit;
@@ -40,6 +41,16 @@ public class FixtureTotalsTests
             var s = Load(f);
             Assert.True(BomTotals.PartsOnly(s) > 0, f);
             Assert.True(BomTotals.Structured(s) > 0, f);
+        }
+    }
+
+    [Fact]
+    public void EveryFixture_UsesOnlyKnownDocumentTypes()
+    {
+        foreach (var f in Directory.GetFiles(SnapshotDir(), "*snapshot.json"))
+        {
+            var unknown = Load(f).Components.Select(c => c.DocumentType).Where(t => !DocumentTypes.IsKnown(t)).Distinct().ToList();
+            Assert.True(unknown.Count == 0, $"{Path.GetFileName(f)}: {string.Join(", ", unknown)}");
         }
     }
 }

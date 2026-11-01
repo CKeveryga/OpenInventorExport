@@ -19,5 +19,8 @@ public static class SnapshotSummary
 
         foreach (var g in groups)
             yield return $"  {g.Key}: {g.Count()}";
+
+        foreach (var g in s.Components.Where(c => !DocumentTypes.IsKnown(c.DocumentType)).GroupBy(c => c.DocumentType).OrderBy(g => g.Key))
+            yield return $"WARNING: unrecognized document type '{g.Key}': {g.Count()}. If legitimate, add it to DocumentTypes.";
     }
 }

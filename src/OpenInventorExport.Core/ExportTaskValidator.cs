@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace OpenInventorExport.Core;
@@ -36,6 +37,9 @@ public static class ExportTaskValidator
         foreach (Match m in Regex.Matches(t, @"\{([^}]*)\}"))
             if (!KnownTokens.Contains(m.Groups[1].Value))
                 problems.Add($"Unknown token {m.Value} in FolderTemplate.");
+
+        foreach (var type in task.Selection.DocumentTypes.Where(t => !DocumentTypes.IsKnown(t)))
+            problems.Add($"Unknown document type '{type}'. Known types: {string.Join(", ", DocumentTypes.All)}.");
 
         return problems;
     }
