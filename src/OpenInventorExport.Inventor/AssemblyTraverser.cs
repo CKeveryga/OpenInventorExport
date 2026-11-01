@@ -63,6 +63,7 @@ public class AssemblyTraverser
         foreach (var occ in occurrences)
         {
             string path = $"{parentPath}/{SafeName(occ)}";
+            string step = "checking suppression";
             try
             {
                 if (occ.Suppressed)
@@ -90,9 +91,11 @@ public class AssemblyTraverser
                     continue;
                 }
 
+                step = "classifying the component";
                 string kind = ClassifyKind(occ);
                 bool isVirtual = kind == "Virtual";
 
+                step = "reading BOM structure";
                 var rec = new ComponentRecord
                 {
                     OccurrencePath = path,
@@ -117,11 +120,15 @@ public class AssemblyTraverser
                         AddSkipped(path, SkipReason.FileMissing, "Could not resolve the referenced file");
                     }
 
+                    rec.IsContentCenter = TryIsContentCenter(occ);
+
+                    step = "reading properties";
                     if (occ.Definition.Document is Inv.Document doc)
                         ReadProperties(doc.PropertySets, rec);
                 }
                 else
                 {
+                    rec.IsContentCenter = false;   // a virtual component cannot come from Content Center
                     rec.FileName = rec.FileName.Trim();   // occurrence name has a leading space
                     try
                     {
@@ -139,6 +146,7 @@ public class AssemblyTraverser
 
                 if (kind == "Assembly")
                 {
+                    step = "reading sub-occurrences";
                     var subs = occ.SubOccurrences;
                     var subList = new List<Inv.ComponentOccurrence>();
                     for (int i = 1; i <= subs.Count; i++) subList.Add(subs[i]);
@@ -148,7 +156,7 @@ public class AssemblyTraverser
             catch (Exception ex)
             {
                 // One bad component must never abort the whole export
-                AddSkipped(path, SkipReason.Error, ex.Message);
+                AddSkipped(path, SkipReason.Error, $"While {step}: {ex.Message}");
             }
         }
     }
@@ -213,6 +221,16 @@ public class AssemblyTraverser
     private static string SafeName(Inv.ComponentOccurrence occ)
     {
         try { return occ.Name; } catch { return "(unnamed)"; }
+    }
+
+    /// <summary>True/false from Inventor, or null if Inventor would not say. Only parts and sheet metal parts are asked.</summary>
+    private static bool? TryIsContentCenter(Inv.ComponentOccurrence occ)
+    {
+        try
+        {
+            return occ.Definition is Inv.PartComponentDefinition part ? part.IsContentMember : (bool?)null;
+        }
+        catch { return null; }
     }
 
     private void AddSkipped(string path, SkipReason reason, string detail) =>

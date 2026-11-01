@@ -39,6 +39,8 @@ public class ComponentRecord
     public int Level { get; set; }
     public bool IsSuppressed { get; set; }
     public bool IsVirtual { get; set; }
+    /// <summary>True if the part is a Content Center member. Null = not recorded (older snapshot, or Inventor would not say).</summary>
+    public bool? IsContentCenter { get; set; }
     public string? BomStructure { get; set; }
     public string? ParentPath { get; set; }
 
