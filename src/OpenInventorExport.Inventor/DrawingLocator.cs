@@ -36,4 +36,11 @@ public static class DrawingLocator
         }
         return null;
     }
+
+    /// <summary>The active project's file name without extension, for messages. Never throws.</summary>
+    internal static string ActiveProjectName(Inv.Application app)
+    {
+        try { return Path.GetFileNameWithoutExtension(app.DesignProjectManager.ActiveDesignProject.FullFileName); }
+        catch { return "unknown"; }
+    }
 }

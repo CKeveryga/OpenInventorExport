@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using OpenInventorExport.Core.Model;
 
@@ -18,5 +20,22 @@ public static class SnapshotChecks
             .Where(k => k.Reason == SkipReason.FileMissing
                      || (k.Reason == SkipReason.Error && !listed.Contains(k.OccurrencePath)))
             .ToList();
+    }
+
+    /// <summary>
+    /// A warning if the project active now differs from the one the snapshot was collected with, else null.
+    /// Null as well when either side is unknown: nothing can be compared. Warning only, never blocks.
+    /// </summary>
+    public static string? ProjectMismatch(Snapshot s, string? activeProjectFile)
+    {
+        if (string.IsNullOrEmpty(s.ProjectFile) || string.IsNullOrEmpty(activeProjectFile))
+            return null;
+        if (string.Equals(s.ProjectFile, activeProjectFile, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return $"WARNING: this snapshot was collected with project '{Path.GetFileNameWithoutExtension(s.ProjectFile)}', " +
+               $"but the active project is now '{Path.GetFileNameWithoutExtension(activeProjectFile)}'. " +
+               "Drawings are looked up through the active project, so drawing exports may report NoDrawing. " +
+               "Activate the right project in Inventor first.";
     }
 }
