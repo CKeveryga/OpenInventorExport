@@ -148,6 +148,9 @@ internal static class Actions
         string mode = config.Rollup.Mode.ToString().ToLowerInvariant();
         string path = Path.Combine(outRoot, $"bom-{mode}.csv");
         File.WriteAllText(path, CsvTableWriter.Write(rows, config.ToCsvColumns()), new UTF8Encoding(true));
+        string xlsxPath = Path.ChangeExtension(path, ".xlsx");
+        XlsxTableWriter.Write(xlsxPath, rows, config.ToCsvColumns(), exclusions);
+        Console.WriteLine($"Written: {xlsxPath}");
         Console.WriteLine($"Rollup: {config.Rollup.Mode}, key: {config.Rollup.Key}");
         Console.WriteLine($"Rows: {rows.Count}, total quantity: {rows.Sum(r => r.Quantity)}");
         Console.WriteLine($"Written: {path}");

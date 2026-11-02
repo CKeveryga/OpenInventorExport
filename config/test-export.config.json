@@ -2,6 +2,8 @@
 	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
 	"SchemaVersion": 1,
 
+	"Unresolved": "Warn",
+
 	"Tasks": [
 		{
 			"Name": "Drawings",
@@ -45,8 +47,6 @@
 		"Mode": "Structured",
 		"IncludeAssemblies": true
 	},
-
-	"Unresolved": "Warn",
 
 	"BomColumns": [
 		{ "Name": "Part Number" },
