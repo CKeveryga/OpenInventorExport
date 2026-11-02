@@ -7,6 +7,9 @@ using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
+/// <summary>What to do when components could not be read at collection.</summary>
+public enum UnresolvedPolicy { Block, Warn }
+
 /// <summary>One property column in the BOM table, after File Name and Qty.</summary>
 public class BomColumn
 {
@@ -29,6 +32,8 @@ public class ExportConfig
     public RollupOptions Rollup { get; set; } = new();
     /// <summary>Optional. Property columns of the BOM table.</summary>
     public List<BomColumn> BomColumns { get; set; } = new();
+    /// <summary>Block (default): exports refuse to run. Warn: export what can be read; each unreadable component gets its own line in the export log.</summary>
+    public UnresolvedPolicy Unresolved { get; set; } = UnresolvedPolicy.Block;
 
     /// <summary>The same list as a PropertySchema, ready for PropertySchemaValidator.</summary>
     public PropertySchema ToPropertySchema() => new PropertySchema { Properties = Properties };
@@ -49,7 +54,8 @@ public static class ExportConfigJson
                 Tasks = config.Tasks,
                 Properties = config.Properties,
                 Rollup = config.Rollup,
-                BomColumns = config.BomColumns
+                BomColumns = config.BomColumns,
+                Unresolved = config.Unresolved
             },
             ExportTaskJson.Options);
 

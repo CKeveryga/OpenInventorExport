@@ -156,6 +156,9 @@ public static class ExportPlanner
             !sel.DocumentTypes.Contains(c.DocumentType, StringComparer.OrdinalIgnoreCase))
             return (ExclusionReason.DocumentType, $"{c.DocumentType} is not in the selected types");
 
+        if (!ContentCenterFilter.Passes(c, sel.ContentCenter))
+            return (ExclusionReason.ContentCenter, ContentCenterFilter.Describe(c, sel.ContentCenter));
+
         foreach (var f in sel.Filters)
             if (!Passes(c, f))
                 return (ExclusionReason.PropertyFilter, $"{f.Property} {f.Operator} \"{f.Value}\" is not met");

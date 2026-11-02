@@ -30,6 +30,8 @@ public class ExportSelection
     /// everything else is selected, children are kept. Example: Purchased with Children Exclude.
     /// </summary>
     public List<BomStructureRule> BomStructures { get; set; } = new();
+    /// <summary>Include (default) = ignore Content Center. Exclude = skip Content Center parts. Only = select nothing else.</summary>
+    public ContentCenterMode ContentCenter { get; set; } = ContentCenterMode.Include;
 }
 
 /// <summary>One format to produce for each selected component.</summary>

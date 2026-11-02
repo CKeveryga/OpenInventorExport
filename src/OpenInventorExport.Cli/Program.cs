@@ -64,34 +64,52 @@ internal static class Actions
         var exclusions = new List<ExclusionRecord>();
         var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
-        PrintIncompleteWarning(snapshot);
+        PrintIncompleteWarning(snapshot, config);
         PrintProjectWarning(snapshot, jobs);
+        PrintContentCenterNote(snapshot, config.Tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
         PrintExclusions(exclusions);
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
 
+    /// <summary>Exit code for a run that went ahead although components could not be read (Unresolved = Warn).</summary>
+    public const int ExitIncomplete = 2;
+
     /// <param name="confirm">Optional last check, given the number of planned jobs. Return false to cancel.</param>
-    public static void Export(Snapshot snapshot, ExportConfig config, string outRoot, Func<int, bool>? confirm = null)
+    /// <returns>0 for a complete run, ExitIncomplete if components were unreadable.</returns>
+    public static int Export(Snapshot snapshot, ExportConfig config, string outRoot, Func<int, bool>? confirm = null)
     {
-        ThrowIfIncomplete(snapshot);
+        // Block: refuse before planning anything. Warn: carry on, and log every unreadable component.
+        if (config.Unresolved == UnresolvedPolicy.Block)
+            ThrowIfIncomplete(snapshot);
+        var unreadable = SnapshotChecks.BlockingProblems(snapshot);
+        PrintIncompleteBanner(unreadable);
+
         var exclusions = new List<ExclusionRecord>();
         var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
         PrintProjectWarning(snapshot, jobs);
+        PrintContentCenterNote(snapshot, config.Tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
         PrintExclusions(exclusions);
 
         int planned = jobs.Count(j => j.State == JobState.Planned);
         if (confirm != null && !confirm(planned))
         {
             Console.WriteLine("Cancelled. Nothing was exported.");
-            return;
+            return 0;
         }
 
         Directory.CreateDirectory(outRoot);
         WriteExclusions(exclusions, Path.Combine(outRoot, "export-excluded.csv"));
         var results = JobRunner.Run(jobs, r =>
             Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
+
+        foreach (var k in unreadable)
+        {
+            var r = ExportResult.ForUnreadable(k);
+            results.Add(r);
+            Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
+        }
 
         // UTF-8 with BOM so Excel opens the CSV correctly.
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
@@ -100,6 +118,8 @@ internal static class Actions
         foreach (var line in ExportResultLog.Summary(results))
             Console.WriteLine(line);
         Console.WriteLine($"Log written to: {outRoot}");
+        PrintIncompleteBanner(unreadable);   // again at the end, where it is seen after a long run
+        return unreadable.Count > 0 ? ExitIncomplete : 0;
     }
 
     public static void Props(Snapshot snapshot, ExportConfig config)
@@ -132,9 +152,12 @@ internal static class Actions
         Console.WriteLine($"Rows: {rows.Count}, total quantity: {rows.Sum(r => r.Quantity)}");
         Console.WriteLine($"Written: {path}");
 
+        PrintIncompleteBanner(SnapshotChecks.BlockingProblems(snapshot));
+        PrintContentCenterNote(snapshot, config.Rollup.ContentCenter != ContentCenterMode.Include);
         PrintExclusions(exclusions);
         WriteExclusions(exclusions, Path.Combine(outRoot, $"bom-{mode}-excluded.csv"));
     }
+
 
     private static void PrintExclusions(List<ExclusionRecord> exclusions)
     {
@@ -204,11 +227,29 @@ internal static class Actions
             Environment.NewLine + "Resolve the files in Inventor, collect again, then export.");
     }
 
-    private static void PrintIncompleteWarning(Snapshot snapshot)
+    private static void PrintIncompleteWarning(Snapshot snapshot, ExportConfig config)
     {
         int n = SnapshotChecks.BlockingProblems(snapshot).Count;
+        if (n == 0) return;
+        Console.WriteLine(config.Unresolved == UnresolvedPolicy.Block
+            ? $"WARNING: {n} component(s) could not be read. 'Run exports' will refuse until they are resolved (Unresolved = Block)."
+            : $"WARNING: {n} component(s) could not be read. 'Run exports' will go ahead and log each one (Unresolved = Warn).");
+    }
+
+    private static void PrintIncompleteBanner(List<SkippedRecord> unreadable)
+    {
+        if (unreadable.Count == 0) return;
+        Console.WriteLine("!! THE COMPONENT LIST IS INCOMPLETE !!");
+        Console.WriteLine($"   {unreadable.Count} component(s) could not be read. An unresolved assembly's children cannot be seen at all, so more may be missing.");
+    }
+
+    private static void PrintContentCenterNote(Snapshot snapshot, bool ruleActive)
+    {
+        if (!ruleActive) return;
+        int n = ContentCenterFilter.NotRecorded(snapshot);
         if (n > 0)
-            Console.WriteLine($"WARNING: {n} component(s) could not be read. 'Run exports' will refuse until they are resolved.");
+            Console.WriteLine($"NOTE: a Content Center rule is active, but {n} part(s) have no Content Center flag " +
+                              "(snapshot collected before v0.4.1?). They are treated as NOT Content Center. Collect again to be sure.");
     }
 
     /// <summary>
@@ -477,6 +518,9 @@ internal static class Cli
 
         outDir defaults to ./output. Commands that collect need Inventor running
         with the assembly as the active document.
+        
+        Exit codes: 0 = done, 1 = error, 2 = export ran but some components could not be read
+        (Unresolved = Warn), so the component list is incomplete.
         """;
 
     public static int Run(string[] args)
@@ -504,8 +548,7 @@ internal static class Cli
                 case "export":
                 case "props":
                 case "bom":
-                    RunWithSnapshot(command, rest);
-                    return 0;
+                    return RunWithSnapshot(command, rest);
 
                 default:
                     Console.Error.WriteLine($"Unknown command '{args[0]}'.");
@@ -520,7 +563,7 @@ internal static class Cli
         }
     }
 
-    private static void RunWithSnapshot(string command, List<string> rest)
+    private static int RunWithSnapshot(string command, List<string> rest)
     {
         string? from = TakeOption(rest, "--from");
         string? configPath = TakeOption(rest, "--config");
@@ -559,10 +602,11 @@ internal static class Cli
         {
             case "snapshot": Actions.Summary(snapshot); break;
             case "plan": Actions.Plan(snapshot, config!, outRoot); break;
-            case "export": Actions.Export(snapshot, config!, outRoot); break;
+            case "export": return Actions.Export(snapshot, config!, outRoot);
             case "props": Actions.Props(snapshot, config!); break;
             case "bom": Actions.Bom(snapshot, config!, outRoot); break;
         }
+        return 0;
     }
 
     /// <summary>Removes "--name value" from the list and returns the value, or null if absent.</summary>

@@ -17,6 +17,8 @@ public class RollupOptions
     public bool IncludeRoot { get; set; } = false;
     public bool IncludeAssemblies { get; set; } = true;
     public bool ExcludeSuppressed { get; set; } = true;
+    /// <summary>Include (default) = ignore Content Center. Exclude = leave Content Center parts out. Only = list nothing else.</summary>
+    public ContentCenterMode ContentCenter { get; set; } = ContentCenterMode.Include;
 
     /// <summary>
     /// Per-structure overrides. Empty = Inventor's defaults: Phantom and Reference items are left out,
@@ -95,6 +97,19 @@ public static class Rollup
                     FileName = c.FileName,
                     Reason = verdict.Reason,
                     Detail = verdict.Detail
+                });
+                continue;
+            }
+
+            if (!ContentCenterFilter.Passes(c, options.ContentCenter))
+            {
+                exclusions?.Add(new ExclusionRecord
+                {
+                    Context = "BOM",
+                    OccurrencePath = c.OccurrencePath,
+                    FileName = c.FileName,
+                    Reason = ExclusionReason.ContentCenter,
+                    Detail = ContentCenterFilter.Describe(c, options.ContentCenter)
                 });
                 continue;
             }

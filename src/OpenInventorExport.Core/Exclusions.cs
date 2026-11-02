@@ -5,7 +5,7 @@ using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
-public enum ExclusionReason { Suppressed, BomStructure, ParentExcluded, DocumentType, PropertyFilter, Scope }
+public enum ExclusionReason { Suppressed, BomStructure, ParentExcluded, DocumentType, PropertyFilter, Scope, ContentCenter }
 
 /// <summary>One component (BOM) or unique file (task) that a rule left out, and why.</summary>
 public class ExclusionRecord

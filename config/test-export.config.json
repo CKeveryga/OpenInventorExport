@@ -9,7 +9,8 @@
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "Part", "SheetMetal" ],
-				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ] 
+				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
+				"ContentCenter": "Exclude"
 			},
 			"Outputs": [
 				{
@@ -41,9 +42,11 @@
 	],
 
 	"Rollup": {
-		"Mode": "Flat",
-		"IncludeAssemblies": false
+		"Mode": "Structured",
+		"IncludeAssemblies": true
 	},
+
+	"Unresolved": "Warn",
 
 	"BomColumns": [
 		{ "Name": "Part Number" },
