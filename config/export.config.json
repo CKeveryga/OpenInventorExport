@@ -2,6 +2,8 @@
 	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
 	"SchemaVersion": 1,
 
+	"Unresolved": "Block",   // Block = refuse to export when components could not be read. Warn = export the rest and log them.
+
 	"Tasks": [
 		{
 			"Name": "Drawings",

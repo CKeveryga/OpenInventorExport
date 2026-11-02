@@ -1,8 +1,10 @@
-﻿namespace OpenInventorExport.Core;
+﻿using OpenInventorExport.Core.Model;
+
+namespace OpenInventorExport.Core;
 
 public enum PdfSheetMode { AllInOne, FirstOnly }
 
-public enum ExportStatus { Exported, NoDrawing, DrawingMismatch, Failed, Conflict }
+public enum ExportStatus { Exported, NoDrawing, DrawingMismatch, Failed, Conflict, Unreadable }
 
 /// <summary>The outcome of one file-export task. Every task produces one of these, so nothing goes missing silently.</summary>
 public class ExportResult
@@ -41,4 +43,16 @@ public class ExportResult
         }
         return r;
     }
+
+    /// <summary>
+    /// A line for a component that could not be read at collection. Used when the policy is Warn,
+    /// so an unreadable component still shows up in the export log.
+    /// </summary>
+    public static ExportResult ForUnreadable(SkippedRecord skipped) => new ExportResult
+    {
+        TaskName = "(collection)",
+        ModelPath = skipped.OccurrencePath,
+        Status = ExportStatus.Unreadable,
+        Detail = $"{skipped.Reason}: {skipped.Detail}"
+    };
 }

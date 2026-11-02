@@ -41,6 +41,8 @@ public static class ExportTaskValidator
         foreach (var type in task.Selection.DocumentTypes.Where(t => !DocumentTypes.IsKnown(t)))
             problems.Add($"Unknown document type '{type}'. Known types: {string.Join(", ", DocumentTypes.All)}.");
 
+        problems.AddRange(BomStructurePolicy.Validate(task.Selection.BomStructures, $"Task '{task.Name}'"));
+
         return problems;
     }
 }
