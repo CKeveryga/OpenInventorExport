@@ -1,0 +1,53 @@
+{
+	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
+	"SchemaVersion": 1,
+
+	"Tasks": [
+		{
+			"Name": "Drawings",
+			"FolderTemplate": "{task}/{format}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part", "SheetMetal" ],
+				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ] 
+			},
+			"Outputs": [
+				{
+					"Format": "Pdf",
+					"Source": "Drawing",
+					"PdfSheets": "AllInOne"
+				},
+				{
+					"Format": "Dwg",
+					"Source": "Drawing",
+					"IniFile": "dwg-one-sheet.ini"
+				},
+				{
+					"Format": "Dxf",
+					"Source": "Drawing",
+					"IniFile": "dxf-one-sheet.ini"
+				}
+			]
+		}
+	],
+
+	"Properties": [
+		{
+			"Set": "Inventor User Defined Properties",
+			"Name": "Finish",
+			"DataType": "Text",
+			"Required": true
+		}
+	],
+
+	"Rollup": {
+		"Mode": "Flat",
+		"IncludeAssemblies": false
+	},
+
+	"BomColumns": [
+		{ "Name": "Part Number" },
+		{ "Name": "Description" },
+		{ "Name": "Material" }
+	]
+}
