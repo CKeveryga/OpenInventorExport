@@ -52,13 +52,16 @@
 			"FolderTemplate": "{task}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ ],
-				"BomStructures": [ {"Structure": "Purchased", "Children": "Exclude" }],
-				"ContentCenter": "Exclude"
+				"DocumentTypes": [ "Part" ],
+				"ContentCenter": "Exclude",
+				"Filters": [
+					{ "Property": "Designer", "Operator": "Contains", "Value": "yuany" },
+					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "ABC" },
+					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "DEF" }]
 			},
 			"Outputs": [
 				{ "Format": "step", "Source": "Model" },
-				{ "Format": "Csv"}
+				{ "Format": "Csv", "Columns": [ { "Name": "Part Number" }, { "Name": "Designer" } ]}
 			]
 		}
 	],

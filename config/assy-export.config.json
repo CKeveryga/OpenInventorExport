@@ -1,0 +1,31 @@
+{
+	"SchemaVersion": 1,
+
+	"Unresolved": "Warn",
+
+	"Tasks": [
+		{
+			"Name": "AssemblyDrawings",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Assembly"]
+			},
+			"Outputs": [
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
+				{ "Format": "csv" }
+			]
+		}
+	],
+
+	"Rollup": {
+		"Mode": "Flat",
+		"IncludeAssemblies": true
+	},
+
+	"BomColumns": [
+		{ "Name": "Part Number" },
+		{ "Name": "Description" },
+		{ "Name": "Material" }
+	]
+}
