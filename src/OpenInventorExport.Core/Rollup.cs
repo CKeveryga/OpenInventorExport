@@ -73,13 +73,16 @@ public static class Rollup
             : ChildHandling.Exclude;
 
         var policy = new BomStructurePolicy(options.BomStructures);
-        bool inseparableAsSingleItem =
-            policy.ChildrenOf(BomStructureKind.Inseparable, inseparableDefault) == ChildHandling.Exclude;
 
         var verdicts = BomVisibility.Evaluate(snapshot, policy, options.ExcludeSuppressed, inseparableDefault);
 
-        bool KeptInseparableAssembly(ComponentRecord c) =>
-            BomStructurePolicy.KindOf(c.BomStructure) == BomStructureKind.Inseparable && inseparableAsSingleItem;
+        // An assembly whose children are hidden is one item, so it stays listed even when assemblies are switched off
+        // (Inventor's Parts Only does this for Inseparable and Purchased assemblies).
+        bool KeptAsSingleItem(ComponentRecord c)
+        {
+            var kind = BomStructurePolicy.KindOf(c.BomStructure);
+            return kind != null && policy.ChildrenOf(kind.Value, inseparableDefault) == ChildHandling.Exclude;
+        }
 
         // The top-level assembly (Level 0) is the thing being exported, not a row in it.
         var candidates = new List<ComponentRecord>();
@@ -114,7 +117,7 @@ public static class Rollup
                 continue;
             }
 
-            if (!(options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptInseparableAssembly(c)))
+            if (!(options.IncludeAssemblies || c.DocumentType != "Assembly" || KeptAsSingleItem(c)))
                 continue;
 
             candidates.Add(c);

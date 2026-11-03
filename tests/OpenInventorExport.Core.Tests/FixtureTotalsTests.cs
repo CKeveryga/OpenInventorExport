@@ -24,6 +24,7 @@ public class FixtureTotalsTests
     [Theory]
     [InlineData("robot-snapshot.json", 445, 421)]
     [InlineData("engine-snapshot.json", 1009, 820)]
+    [InlineData("testing-snapshot.json", 3, 5)]   // in Totals_MatchInventorBom: Parts Only qty 3, Structured qty 5
     public void Totals_MatchInventorBom(string file, int partsOnly, int structured)
     {
         var s = Load(Path.Combine(SnapshotDir(), file));
@@ -58,6 +59,7 @@ public class FixtureTotalsTests
     [Theory]
     [InlineData("robot-snapshot.json", 125, 175)]
     [InlineData("engine-snapshot.json", 184, 239)]
+    [InlineData("testing-snapshot.json", 3, 5)]
     public void RowCounts_MatchInventorBom(string file, int partsOnlyRows, int structuredRows)
     {
         var s = Load(Path.Combine(SnapshotDir(), file));

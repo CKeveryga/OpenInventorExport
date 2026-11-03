@@ -79,12 +79,73 @@ public class BomStructureTests
     }
 
     [Fact]
-    public void Purchased_ChildrenAreListedByDefault()
+    public void Purchased_FlatShowsOneItem_StructuredListsTheChildren()
     {
-        var rows = Rollup.Apply(With(Purchased), Flat());
+        var flat = Rollup.Apply(With(Purchased), Flat());
+        Assert.Equal(1, flat.Single(r => r.Component.FileName == "Sub.iam").Quantity);
+        Assert.DoesNotContain(flat, r => r.Component.FileName == "Bolt.ipt");
 
-        Assert.Equal(1, rows.Single(r => r.Component.FileName == "Sub.iam").Quantity);
+        var structured = Rollup.Apply(With(Purchased), new RollupOptions { Mode = RollupMode.Structured });
+        Assert.Equal(2, structured.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
+
+    [Fact]
+    public void Purchased_AssemblyStaysInPartsOnly_EvenWithAssembliesOff()
+    {
+        var rows = Rollup.Apply(With(Purchased), new RollupOptions { Mode = RollupMode.Flat, IncludeAssemblies = false });
+
+        Assert.Contains(rows, r => r.Component.FileName == "Sub.iam");
+        Assert.DoesNotContain(rows, r => r.Component.FileName == "Bolt.ipt");
+    }
+
+    [Fact]
+    public void Purchased_ExplicitChildrenInclude_BeatsTheModeDefault()
+    {
+        var rows = Rollup.Apply(With(Purchased),
+            Flat(new BomStructureRule { Structure = BomStructureKind.Purchased, Children = ChildHandling.Include }));
+
         Assert.Equal(2, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
+
+    [Fact]
+    public void Reference_ChildrenAreLeftOutToo_AndReported()
+    {
+        var excl = new System.Collections.Generic.List<ExclusionRecord>();
+        var rows = Rollup.Apply(With(Reference), Flat(), excl);
+
+        Assert.DoesNotContain(rows, r => r.Component.FileName == "Sub.iam");
+        Assert.DoesNotContain(rows, r => r.Component.FileName == "Bolt.ipt");
+        Assert.Equal(3, excl.Count);   // the item + 2 bolts
+        Assert.Equal(2, excl.Count(e => e.Reason == ExclusionReason.ParentExcluded));
+    }
+
+    [Fact]
+    public void Reference_ChildrenCanBeKept()
+    {
+        var rows = Rollup.Apply(With(Reference),
+            Flat(new BomStructureRule { Structure = BomStructureKind.Reference, Children = ChildHandling.Include }));
+
+        Assert.DoesNotContain(rows, r => r.Component.FileName == "Sub.iam");
+        Assert.Equal(2, rows.Single(r => r.Component.FileName == "Bolt.ipt").Quantity);
+    }
+
+    [Fact]
+    public void Planner_PurchasedAssemblyAndItsChildren_AreExportedByDefault()
+    {
+        var jobs = ExportPlanner.Plan(With(Purchased), StepTask(), @"C:\out");
+
+        Assert.Contains(jobs, j => j.ModelPath.EndsWith("Sub.iam"));
+        Assert.Contains(jobs, j => j.ModelPath.EndsWith("Bolt.ipt"));
+    }
+
+    [Fact]
+    public void Planner_ReferenceAssemblyAndItsChildren_AreNotExportedByDefault()
+    {
+        var jobs = ExportPlanner.Plan(With(Reference), StepTask(), @"C:\out");
+
+        Assert.DoesNotContain(jobs, j => j.ModelPath.EndsWith("Sub.iam"));
+        Assert.DoesNotContain(jobs, j => j.ModelPath.EndsWith("Bolt.ipt"));
+        Assert.Contains(jobs, j => j.ModelPath.EndsWith("Plate.ipt"));
     }
 
     [Fact]

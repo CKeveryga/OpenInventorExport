@@ -20,8 +20,10 @@ public class BomStructureRule
 }
 
 /// <summary>
-/// Resolves the defaults (same as Inventor: Phantom and Reference items are left out, children are kept)
-/// plus any rule overrides. Inseparable children have no fixed default: the caller supplies it.
+/// Resolves the defaults plus any rule overrides. Verified against Inventor 2027: Phantom and Reference items
+/// are left out; Phantom children are kept (promoted to the parent); Reference children are left out too.
+/// Inseparable and Purchased have no fixed default for their children (Parts Only hides them,
+/// Structured lists them), so the caller supplies it from the rollup mode.
 /// </summary>
 public sealed class BomStructurePolicy
 {
@@ -33,7 +35,7 @@ public sealed class BomStructurePolicy
         foreach (BomStructureKind k in Enum.GetValues(typeof(BomStructureKind)))
         {
             _item[k] = k != BomStructureKind.Phantom && k != BomStructureKind.Reference;
-            _children[k] = k == BomStructureKind.Inseparable ? (ChildHandling?)null : ChildHandling.Include;
+            _children[k] = DefaultChildren(k);
         }
 
         if (overrides == null) return;
@@ -62,8 +64,8 @@ public sealed class BomStructurePolicy
     public bool ItemListed(BomStructureKind? kind) => kind == null || _item[kind.Value];
 
     /// <summary>Whether the children of an item with this structure are kept.</summary>
-    public ChildHandling ChildrenOf(BomStructureKind kind, ChildHandling inseparableDefault) =>
-        _children[kind] ?? inseparableDefault;
+    public ChildHandling ChildrenOf(BomStructureKind kind, ChildHandling modeDefault) =>
+    _children[kind] ?? modeDefault;
 
     /// <summary>Problems in a rule list: unknown structure values and structures listed twice.</summary>
     public static List<string> Validate(IEnumerable<BomStructureRule> rules, string where)
@@ -78,5 +80,19 @@ public sealed class BomStructurePolicy
             problems.Add($"{where}: BOM structure '{dup.Key}' is listed more than once.");
 
         return problems;
+    }
+
+    private static ChildHandling? DefaultChildren(BomStructureKind k)
+    {
+        switch (k)
+        {
+            case BomStructureKind.Reference:
+                return ChildHandling.Exclude;
+            case BomStructureKind.Inseparable:
+            case BomStructureKind.Purchased:
+                return null;   // depends on the BOM view
+            default:
+                return ChildHandling.Include;
+        }
     }
 }
