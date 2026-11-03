@@ -14,13 +14,13 @@ public static class TaskTable
     /// assemblies and the root switched on: the task's selection decides what is listed, not the BOM view.
     /// Children of inseparable assemblies are kept for the same reason.
     /// </summary>
-    public static List<ExportRow> Rows(Snapshot snapshot, ExportTask task, ExportConfig config)
+    public static List<ExportRow> Rows(Snapshot snapshot, ExportTask task, OutputSpec output, ExportConfig config)
     {
         var cfg = config.Rollup;
         var options = new RollupOptions
         {
-            Mode = cfg.Mode,
-            Key = cfg.Key,
+            Mode = output.Mode ?? cfg.Mode,
+            Key = output.Key ?? cfg.Key,
             ExcludeSuppressed = cfg.ExcludeSuppressed,
             IncludeAssemblies = true,
             IncludeRoot = true,

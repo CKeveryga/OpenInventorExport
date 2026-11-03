@@ -16,7 +16,7 @@
 				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
 				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
 				{ "Format": "Xlsx", "Folder": "Tables", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
-				{ "Format": "Csv", "Folder": "Tables" }
+				{ "Format": "Csv", "Folder": "Tables", "Name": "ERP_Import", "Mode": "Occurrence", "Key": "FilePath" }
 			]
 		}
 	],

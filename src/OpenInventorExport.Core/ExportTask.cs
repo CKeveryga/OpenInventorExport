@@ -57,6 +57,10 @@ public class OutputSpec
     public string? Name { get; set; }
     /// <summary>Csv/Xlsx only. Property columns after File Name and Qty. Empty = the config's BomColumns.</summary>
     public List<BomColumn> Columns { get; set; } = new();
+    /// <summary>Csv/Xlsx only. How rows are counted. Null = the config's Rollup.Mode.</summary>
+    public RollupMode? Mode { get; set; }
+    /// <summary>Csv/Xlsx only. What makes two components the same row. Null = the config's Rollup.Key.</summary>
+    public RollupKey? Key { get; set; }
 }
 
 /// <summary>A named deliverable: which components, which outputs, where they go.</summary>

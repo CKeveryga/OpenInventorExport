@@ -174,7 +174,7 @@ internal static class Actions
             try
             {
                 var task = tasks.First(t => t.Name == job.TaskName);
-                var rows = TaskTable.Rows(snapshot, task, config);
+                var rows = TaskTable.Rows(snapshot, task, job.Output, config);
                 var columns = TaskTable.Columns(job.Output, config);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(job.OutputPath)!);

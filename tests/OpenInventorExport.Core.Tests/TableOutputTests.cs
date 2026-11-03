@@ -68,7 +68,7 @@ public class TableOutputTests
     {
         var task = SheetMetalX(Drw(ExportFormat.Dxf, "DXF"), Tbl(ExportFormat.Csv, "PDF"));
 
-        var row = Assert.Single(TaskTable.Rows(Sample(), task, new ExportConfig()));
+        var row = Assert.Single(TaskTable.Rows(Sample(), task, task.Outputs[1], new ExportConfig()));
 
         Assert.Equal("Plate.ipt", row.Component.FileName);
         Assert.Equal(2, row.Quantity);
@@ -81,7 +81,7 @@ public class TableOutputTests
         task.Selection.DocumentTypes.Add("Assembly");
         var config = new ExportConfig { Rollup = new RollupOptions { IncludeAssemblies = false } };
 
-        var row = Assert.Single(TaskTable.Rows(Sample(), task, config));
+        var row = Assert.Single(TaskTable.Rows(Sample(), task, task.Outputs[0], config));
 
         Assert.Equal("Top.iam", row.Component.FileName);
         Assert.Equal(1, row.Quantity);
@@ -232,4 +232,33 @@ public class TableOutputTests
               "Tasks": [ { "Name": "A", "Outputs": [ { "Format": "Step", "Source": "Model" } ],
                            "Package": { "Table": [ "Csv" ] } } ] }
             """));
+
+    [Fact]
+    public void Rows_ModeComesFromTheOutput_ElseTheConfig()
+    {
+        var flat = Tbl(ExportFormat.Csv, "", "flat");
+        var occ = Tbl(ExportFormat.Csv, "", "occ");
+        occ.Mode = RollupMode.Occurrence;
+        var task = SheetMetalX(Drw(ExportFormat.Dxf), flat, occ);
+        var config = new ExportConfig { Rollup = new RollupOptions { Mode = RollupMode.Flat } };
+
+        Assert.Single(TaskTable.Rows(Sample(), task, flat, config));      // Plate x2 in one row
+        Assert.Equal(2, TaskTable.Rows(Sample(), task, occ, config).Count); // one row per occurrence
+    }
+
+    [Fact]
+    public void ModeAndKey_OnAFileOutput_AreRejected()
+    {
+        var o = Drw(ExportFormat.Pdf);
+        o.Mode = RollupMode.Flat;
+        Assert.Contains(ExportTaskValidator.Validate(SheetMetalX(o)), p => p.Contains("only apply to Csv and Xlsx"));
+    }
+
+    [Fact]
+    public void ModeAndKey_ReadFromJson()
+    {
+        var c = ExportConfigJson.FromJson(Wrap("""{ "Format": "Csv", "Mode": "Occurrence", "Key": "FilePath" }"""));
+        Assert.Equal(RollupMode.Occurrence, c.Tasks[0].Outputs[0].Mode);
+        Assert.Equal(RollupKey.FilePath, c.Tasks[0].Outputs[0].Key);
+    }
 }

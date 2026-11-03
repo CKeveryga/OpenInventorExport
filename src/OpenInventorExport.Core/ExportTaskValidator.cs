@@ -45,8 +45,8 @@ public static class ExportTaskValidator
             if (Path.IsPathRooted(folder) || normal.Split('/').Contains(".."))
                 problems.Add($"Task '{task.Name}': output Folder '{o.Folder}' must be a relative path without '..'.");
 
-            if (!table && (o.Columns.Count > 0 || !string.IsNullOrWhiteSpace(o.Name)))
-                problems.Add($"Task '{task.Name}': Name and Columns only apply to Csv and Xlsx outputs, not {o.Format}.");
+            if (!table && (o.Columns.Count > 0 || !string.IsNullOrWhiteSpace(o.Name) || o.Mode != null || o.Key != null))
+                problems.Add($"Task '{task.Name}': Name, Columns, Mode and Key only apply to Csv and Xlsx outputs, not {o.Format}.");
             if (table && !string.IsNullOrWhiteSpace(o.Name) && o.Name!.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 problems.Add($"Task '{task.Name}': table name '{o.Name}' has characters not allowed in a file name.");
 
