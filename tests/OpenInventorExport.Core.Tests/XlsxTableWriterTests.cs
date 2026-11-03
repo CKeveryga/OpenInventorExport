@@ -71,17 +71,4 @@ public class XlsxTableWriterTests : IDisposable
         using (var wb = new XLWorkbook(some))
             Assert.Equal("BomStructure", wb.Worksheet(XlsxTableWriter.ExcludedSheet).Cell(2, 2).GetString());
     }
-
-    [Fact]
-    public void DeliveredColumn_SitsBeforeStatus_WhenGiven()
-    {
-        string path = Path.Combine(_dir, "e.xlsx");
-        XlsxTableWriter.Write(path, new[] { Row("A.ipt", 1, "1") }, Cols, null, _ => "No (Dxf: NoDrawing)");
-
-        using var wb = new XLWorkbook(path);
-        var ws = wb.Worksheet(XlsxTableWriter.BomSheet);
-        Assert.Equal("Delivered", ws.Cell(1, 5).GetString());
-        Assert.Equal("Status", ws.Cell(1, 6).GetString());
-        Assert.StartsWith("No", ws.Cell(2, 5).GetString());
-    }
 }

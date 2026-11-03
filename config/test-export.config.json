@@ -1,15 +1,12 @@
 {
-	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
 	"SchemaVersion": 1,
 
 	"Unresolved": "Warn",
-	"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
 
 	"Tasks": [
 		{
 			"Name": "SheetMetalDrawings",
-			"FolderTemplate": "{task}/{format}",
-			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+			"FolderTemplate": "{task}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "SheetMetal" ],
@@ -17,27 +14,16 @@
 				"ContentCenter": "Exclude"
 			},
 			"Outputs": [
-				{
-					"Format": "Pdf",
-					"Source": "Drawing",
-					"PdfSheets": "AllInOne"
-				},
-				{
-					"Format": "Dwg",
-					"Source": "Drawing",
-					"IniFile": "dwg-one-sheet.ini"
-				},
-				{
-					"Format": "Dxf",
-					"Source": "Drawing",
-					"IniFile": "dxf-one-sheet.ini"
-				}
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne", "Folder": "PDF" },
+				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
+				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
+				{ "Format": "Xlsx", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+				{ "Format": "Csv" }
 			]
 		},
 				{
 			"Name": "PartDrawings",
-			"FolderTemplate": "{task}/{format}",
-			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+			"FolderTemplate": "{task}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "Part" ],
@@ -45,28 +31,34 @@
 				"ContentCenter": "Include"
 			},
 			"Outputs": [
-				{
-					"Format": "Pdf",
-					"Source": "Drawing",
-					"PdfSheets": "AllInOne"
-				}
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
+				{ "Format": "Csv" }
 			]
 		},
-				{
+		{
 			"Name": "AssemblyDrawings",
-			"FolderTemplate": "{task}/{format}",
-			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+			"FolderTemplate": "{task}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "Assembly"],
 				"ContentCenter": "Exclude"
 			},
 			"Outputs": [
-				{
-					"Format": "Pdf",
-					"Source": "Drawing",
-					"PdfSheets": "AllInOne"
-				}
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" }
+			]
+		},
+		{
+			"Name": "StepFiles",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ ],
+				"BomStructures": [ {"Structure": "Purchased", "Children": "Exclude" }],
+				"ContentCenter": "Exclude"
+			},
+			"Outputs": [
+				{ "Format": "step", "Source": "Model" },
+				{ "Format": "Csv"}
 			]
 		}
 	],

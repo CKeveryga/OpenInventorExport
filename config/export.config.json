@@ -1,33 +1,22 @@
 {
-	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
 	"SchemaVersion": 1,
 
-	"Unresolved": "Block",   // Block = refuse to export when components could not be read. Warn = export the rest and log them.
+	"Unresolved": "Block", 
 
 	"Tasks": [
 		{
 			"Name": "Drawings",
-			"FolderTemplate": "{task}/{format}",
+			"FolderTemplate": "{task}/{format}/{type}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "Part", "SheetMetal" ]
 			},
 			"Outputs": [
-				{
-					"Format": "Pdf",
-					"Source": "Drawing",
-					"PdfSheets": "AllInOne"
-				},
-				{
-					"Format": "Dwg",
-					"Source": "Drawing",
-					"IniFile": "dwg-one-sheet.ini"
-				},
-				{
-					"Format": "Dxf",
-					"Source": "Drawing",
-					"IniFile": "dxf-one-sheet.ini"
-				}
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
+				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
+				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
+				{ "Format": "xlxs", "Folder": "Tables", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+				{ "Format": "csv", "Folder": "Tables" }
 			]
 		}
 	],

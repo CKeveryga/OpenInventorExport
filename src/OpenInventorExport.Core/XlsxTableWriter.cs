@@ -18,12 +18,11 @@ public static class XlsxTableWriter
     string path,
     IEnumerable<ExportRow> rows,
     IReadOnlyList<(string Set, string Name)> propertyColumns,
-    IEnumerable<ExclusionRecord>? exclusions = null,
-    Func<ExportRow, string>? delivered = null)
+    IEnumerable<ExclusionRecord>? exclusions = null)
     {
         using (var wb = new XLWorkbook())
         {
-            WriteBom(wb.Worksheets.Add(BomSheet), rows, propertyColumns, delivered);
+            WriteBom(wb.Worksheets.Add(BomSheet), rows, propertyColumns);
 
             var excluded = exclusions?.ToList();
             if (excluded != null && excluded.Count > 0)
@@ -34,17 +33,12 @@ public static class XlsxTableWriter
     }
 
     private static void WriteBom(IXLWorksheet ws, IEnumerable<ExportRow> rows,
-        IReadOnlyList<(string Set, string Name)> propertyColumns, Func<ExportRow, string>? delivered)
+        IReadOnlyList<(string Set, string Name)> propertyColumns)
     {
         var header = new List<string> { "File Name", "Qty" };
         header.AddRange(propertyColumns.Select(c => c.Name));
-        if (delivered != null) header.Add("Delivered");
         header.Add("Status");
         WriteHeader(ws, header);
-
-        int next = 3 + propertyColumns.Count;
-        int deliveredCol = delivered != null ? next : 0;
-        int statusCol = delivered != null ? next + 1 : next;
 
         int r = 2;
         foreach (var row in rows)
@@ -58,14 +52,7 @@ public static class XlsxTableWriter
                 SetTyped(ws.Cell(r, 3 + i), row.Component.FindProperty(col.Set, col.Name));
             }
 
-            if (delivered != null)
-            {
-                string d = delivered(row);
-                ws.Cell(r, deliveredCol).Value = d;
-                if (!d.StartsWith("Yes"))
-                    ws.Range(r, 1, r, statusCol).Style.Fill.BackgroundColor = XLColor.LightSalmon;
-            }
-
+            int statusCol = 3 + propertyColumns.Count;
             if (row.Component.IsUnresolved)
             {
                 ws.Cell(r, statusCol).Value = "Unresolved";

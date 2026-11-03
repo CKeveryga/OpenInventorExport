@@ -20,6 +20,16 @@ public class ExportJob
     public string? Detail { get; set; }
 }
 
+/// <summary>One table file to write. Planned jobs are written; Conflict jobs are only reported.</summary>
+public class TableJob
+{
+    public string TaskName { get; set; } = "";
+    public OutputSpec Output { get; set; } = new();
+    public string OutputPath { get; set; } = "";
+    public JobState State { get; set; }
+    public string? Detail { get; set; }
+}
+
 public static class ExportPlanner
 {
     /// <param name="exclusions">Optional. Receives one record per unique file the task's rules left out.</param>
@@ -39,6 +49,8 @@ public static class ExportPlanner
             string model = PathUtil.StripMemberSuffix(comp.FullPath!);
             foreach (var output in task.Outputs)
             {
+                if (IsTable(output.Format)) continue;   // tables are planned by PlanTables
+
                 string folder = ResolveFolder(task, output, comp);
                 string file = PathUtil.DrawingBaseName(model) + ExtensionFor(output.Format);
                 string outPath = Path.Combine(outputRoot, folder, file);
@@ -90,6 +102,43 @@ public static class ExportPlanner
             else
             {
                 claimed[job.OutputPath] = $"task '{job.TaskName}' ({Path.GetFileName(job.ModelPath)})";
+            }
+        }
+        return jobs;
+    }
+
+    /// <summary>
+    /// One job per table output. A table that would overwrite another table (same path, in this or
+    /// another task) is a Conflict. Tables never collide with component files: their extensions differ.
+    /// </summary>
+    public static List<TableJob> PlanTables(IEnumerable<ExportTask> tasks, string outputRoot)
+    {
+        var jobs = new List<TableJob>();
+        var claimed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var task in tasks)
+        {
+            foreach (var output in task.Outputs.Where(o => IsTable(o.Format)))
+            {
+                string root = task.FolderTemplate
+                    .Replace("{task}", Clean(task.Name))
+                    .Replace("{format}", output.Format.ToString().ToLowerInvariant())
+                    .Replace('/', Path.DirectorySeparatorChar);
+                string name = Clean(string.IsNullOrWhiteSpace(output.Name) ? task.Name : output.Name!)
+                              + ExtensionFor(output.Format);
+                string path = Path.Combine(outputRoot, root, SubFolder(output), name);
+
+                var job = new TableJob { TaskName = task.Name, Output = output, OutputPath = path, State = JobState.Planned };
+                if (claimed.TryGetValue(path, out var owner))
+                {
+                    job.State = JobState.Conflict;
+                    job.Detail = $"Same output file as task '{owner}'";
+                }
+                else
+                {
+                    claimed[path] = task.Name;
+                }
+                jobs.Add(job);
             }
         }
         return jobs;
@@ -189,12 +238,15 @@ public static class ExportPlanner
 
     private static string ResolveFolder(ExportTask task, OutputSpec output, ComponentRecord comp)
     {
-        string folder = task.FolderTemplate
+        string root = task.FolderTemplate
             .Replace("{task}", Clean(task.Name))
             .Replace("{format}", output.Format.ToString().ToLowerInvariant())
             .Replace("{type}", Clean(comp.DocumentType));
-        return folder.Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(root.Replace('/', Path.DirectorySeparatorChar), SubFolder(output));
     }
+
+    private static string SubFolder(OutputSpec output) =>
+        (output.Folder ?? "").Trim().Replace('/', Path.DirectorySeparatorChar);
 
     private static string Clean(string s)
     {
@@ -211,7 +263,12 @@ public static class ExportPlanner
             case ExportFormat.Pdf: return ".pdf";
             case ExportFormat.Dwg: return ".dwg";
             case ExportFormat.Dxf: return ".dxf";
+            case ExportFormat.Csv: return ".csv";
+            case ExportFormat.Xlsx: return ".xlsx";
             default: return ".dwf";
         }
     }
+
+    /// <summary>Csv and Xlsx: one table per output instead of one file per component.</summary>
+    public static bool IsTable(ExportFormat f) => f == ExportFormat.Csv || f == ExportFormat.Xlsx;
 }

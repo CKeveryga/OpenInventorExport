@@ -75,23 +75,23 @@ internal static class Actions
         var tasks = SelectTasks(config, only);
         var exclusions = new List<ExclusionRecord>();
         var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
+        var tables = ExportPlanner.PlanTables(tasks, outRoot);
         PrintPlanCounts(jobs);
         PrintIncompleteWarning(snapshot, config);
         PrintProjectWarning(snapshot, jobs);
         PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
         PrintExclusions(exclusions);
-        foreach (var t in tasks.Where(t => t.Package != null))
-            Console.WriteLine($"Package '{t.Name}': table {(t.Package!.Table.Count == 0 ? "none" : string.Join(", ", t.Package.Table))}" +
-                              (t.Package.Zip ? ", zip (not built yet)" : ""));
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
+        foreach (var t in tables)
+            Console.WriteLine($"[{t.State}] {t.TaskName}: table -> {t.OutputPath} {t.Detail}");
     }
 
     /// <summary>Exit code for a run that went ahead although components could not be read (Unresolved = Warn).</summary>
     public const int ExitIncomplete = 2;
 
     /// <param name="confirm">Optional last check, given the number of planned jobs. Return false to cancel.</param>
-    /// <param name="only">Optional task name: run just that task (and its package).</param>
+    /// <param name="only">Optional task name: run just that task.</param>
     /// <returns>0 for a complete run, ExitIncomplete if components were unreadable.</returns>
     public static int Export(Snapshot snapshot, ExportConfig config, string outRoot,
         Func<int, bool>? confirm = null, string? only = null)
@@ -106,6 +106,7 @@ internal static class Actions
 
         var exclusions = new List<ExclusionRecord>();
         var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
+        var tableJobs = ExportPlanner.PlanTables(tasks, outRoot);
         PrintPlanCounts(jobs);
         PrintProjectWarning(snapshot, jobs);
         PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
@@ -130,12 +131,13 @@ internal static class Actions
             Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
         }
 
+        WriteTables(snapshot, config, tasks, tableJobs, results);
+
         // UTF-8 with BOM so Excel opens the CSV correctly.
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
         File.WriteAllText(Path.Combine(outRoot, "export-log.json"), ExportResultLog.ToJson(results));
 
-        WritePackages(tasks, snapshot, config, results, outRoot);
-
+        PrintTaskFailures(tasks, results);
         foreach (var line in ExportResultLog.Summary(results))
             Console.WriteLine(line);
         Console.WriteLine($"Log written to: {outRoot}");
@@ -144,51 +146,71 @@ internal static class Actions
     }
 
     /// <summary>
-    /// For each task with a Package: writes its table(s) to packages/&lt;task&gt;/ and says whether the
-    /// package is complete. Failed jobs are listed and marked in the table's Delivered column.
+    /// Writes each planned table. Every table lists all the files its task selects, whatever was exported,
+    /// and gets its own line in the export log (ModelPath "(table)").
     /// </summary>
-    private static void WritePackages(IEnumerable<ExportTask> tasks, Snapshot snapshot, ExportConfig config,
-        List<ExportResult> results, string outRoot)
+    private static void WriteTables(Snapshot snapshot, ExportConfig config, IEnumerable<ExportTask> tasks,
+        List<TableJob> tableJobs, List<ExportResult> results)
     {
-        foreach (var task in tasks.Where(t => t.Package != null))
+        foreach (var job in tableJobs)
         {
-            var package = task.Package!;
-
-            if (package.Table.Count > 0)
+            var result = new ExportResult
             {
-                string safe = PackageTable.SafeName(task.Name);
-                string folder = Path.Combine(outRoot, "packages", safe);
-                Directory.CreateDirectory(folder);
+                TaskName = job.TaskName,
+                Format = job.Output.Format,
+                ModelPath = "(table)",
+                OutputPath = job.OutputPath
+            };
+            results.Add(result);
 
-                var rows = PackageTable.Rows(snapshot, task, config);
-                var columns = PackageTable.Columns(task, config);
-                var delivered = PackageTable.Delivered(task, results);
-
-                foreach (var format in package.Table)
-                {
-                    string path = Path.Combine(folder, safe + (format == TableFormat.Xlsx ? ".xlsx" : ".csv"));
-                    if (format == TableFormat.Xlsx)
-                        XlsxTableWriter.Write(path, rows, columns, null, delivered);
-                    else
-                        File.WriteAllText(path, CsvTableWriter.Write(rows, columns, delivered), new UTF8Encoding(true));
-                    Console.WriteLine($"Package '{task.Name}' table: {path} ({rows.Count} row(s))");
-                }
+            if (job.State == JobState.Conflict)
+            {
+                result.Status = ExportStatus.Conflict;
+                result.Detail = job.Detail;
+                Console.WriteLine($"[{result.Status}] {job.TaskName}: table {job.OutputPath} {job.Detail}");
+                continue;
             }
 
+            try
+            {
+                var task = tasks.First(t => t.Name == job.TaskName);
+                var rows = TaskTable.Rows(snapshot, task, config);
+                var columns = TaskTable.Columns(job.Output, config);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(job.OutputPath)!);
+                if (job.Output.Format == ExportFormat.Xlsx)
+                    XlsxTableWriter.Write(job.OutputPath, rows, columns);
+                else
+                    File.WriteAllText(job.OutputPath, CsvTableWriter.Write(rows, columns), new UTF8Encoding(true));
+
+                result.Status = ExportStatus.Exported;
+                result.Detail = $"{rows.Count} row(s)";
+            }
+            catch (Exception ex)
+            {
+                result.Status = ExportStatus.Failed;
+                result.Detail = ex.Message;
+            }
+            Console.WriteLine($"[{result.Status}] {job.TaskName}: table {job.OutputPath} {result.Detail}");
+        }
+    }
+
+    /// <summary>For each task with anything not exported: a banner and the first 10 problems. The full list is in the export log.</summary>
+    private static void PrintTaskFailures(IEnumerable<ExportTask> tasks, List<ExportResult> results)
+    {
+        foreach (var task in tasks)
+        {
             var failed = results.Where(r => r.TaskName == task.Name && r.Status != ExportStatus.Exported).ToList();
-            if (failed.Count > 0)
+            if (failed.Count == 0)
             {
-                Console.WriteLine($"!! PACKAGE '{task.Name}' IS INCOMPLETE: {failed.Count} file(s) not exported:");
-                foreach (var r in failed)
-                    Console.WriteLine($"   [{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} {r.Detail}");
+                Console.WriteLine($"Task '{task.Name}': complete.");
+                continue;
             }
-            else
-            {
-                Console.WriteLine($"Package '{task.Name}': complete.");
-            }
-
-            if (package.Zip)
-                Console.WriteLine($"NOTE: Zip is set for '{task.Name}', but zipping is not built yet. The files are in the output folder.");
+            Console.WriteLine($"!! TASK '{task.Name}' IS INCOMPLETE: {failed.Count} output(s) not exported (see export-log.csv):");
+            foreach (var r in failed.Take(10))
+                Console.WriteLine($"   [{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} {r.Detail}");
+            if (failed.Count > 10)
+                Console.WriteLine($"   ...and {failed.Count - 10} more.");
         }
     }
 
