@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace OpenInventorExport.Core;
@@ -66,6 +67,15 @@ public static class ExportTaskValidator
 
         foreach (var type in task.Selection.DocumentTypes.Where(x => !DocumentTypes.IsKnown(x)))
             problems.Add($"Unknown document type '{type}'. Known types: {string.Join(", ", DocumentTypes.All)}.");
+
+        foreach (var f in task.Selection.Filters)
+        {
+            if (string.IsNullOrWhiteSpace(f.Property))
+                problems.Add($"Task '{task.Name}': a filter has no Property.");
+            if (ExportPlanner.IsNumeric(f.Operator) &&
+                !double.TryParse(f.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                problems.Add($"Task '{task.Name}': filter on '{f.Property}' uses {f.Operator}, so Value must be a number.");
+        }
 
         problems.AddRange(BomStructurePolicy.Validate(task.Selection.BomStructures, $"Task '{task.Name}'"));
 

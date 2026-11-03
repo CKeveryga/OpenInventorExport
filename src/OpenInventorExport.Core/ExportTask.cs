@@ -7,7 +7,11 @@ namespace OpenInventorExport.Core;
 public enum ExportFormat { Step, Pdf, Dwg, Dxf, Dwf, Csv, Xlsx }
 public enum ExportSource { Model, Drawing }
 public enum ExportScope { TopLevelOnly, AllUniqueFiles }
-public enum FilterOperator { Equals, NotEquals, Contains, IsEmpty, IsNotEmpty }
+public enum FilterOperator
+{
+    Equals, NotEquals, Contains, IsEmpty, IsNotEmpty,
+    LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual
+}
 
 /// <summary>One property test, e.g. Material Equals "Steel". Comparisons ignore case.</summary>
 public class PropertyFilter

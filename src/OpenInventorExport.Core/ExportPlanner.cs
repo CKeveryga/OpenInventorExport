@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
@@ -216,7 +217,7 @@ public static class ExportPlanner
 
         foreach (var f in sel.Filters)
             if (!Passes(c, f))
-                return (ExclusionReason.PropertyFilter, $"{f.Property} {f.Operator} \"{f.Value}\" is not met");
+                return (ExclusionReason.PropertyFilter, NotMet(c, f));
 
         return null;
     }
@@ -232,8 +233,32 @@ public static class ExportPlanner
             case FilterOperator.Contains: return value.IndexOf(wanted, StringComparison.OrdinalIgnoreCase) >= 0;
             case FilterOperator.IsEmpty: return value.Length == 0;
             case FilterOperator.IsNotEmpty: return value.Length > 0;
+            case FilterOperator.LessThan: return TryNumbers(value, wanted, out var a1, out var b1) && a1 < b1;
+            case FilterOperator.LessThanOrEqual: return TryNumbers(value, wanted, out var a2, out var b2) && a2 <= b2;
+            case FilterOperator.GreaterThan: return TryNumbers(value, wanted, out var a3, out var b3) && a3 > b3;
+            case FilterOperator.GreaterThanOrEqual: return TryNumbers(value, wanted, out var a4, out var b4) && a4 >= b4;
             default: return false;
         }
+    }
+
+    internal static bool IsNumeric(FilterOperator op) =>
+        op == FilterOperator.LessThan || op == FilterOperator.LessThanOrEqual ||
+        op == FilterOperator.GreaterThan || op == FilterOperator.GreaterThanOrEqual;
+
+    /// <summary>Reads both sides as numbers (invariant culture). A missing or non-numeric value fails the filter.</summary>
+    private static bool TryNumbers(string value, string wanted, out double a, out double b)
+    {
+        b = 0;
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out a)
+            && double.TryParse(wanted, NumberStyles.Float, CultureInfo.InvariantCulture, out b);
+    }
+
+    private static string NotMet(ComponentRecord c, PropertyFilter f)
+    {
+        string value = c.FindProperty(f.Set, f.Property)?.Value ?? "";
+        if (IsNumeric(f.Operator) && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            return $"{f.Property} is \"{value}\", which is not a number";
+        return $"{f.Property} {f.Operator} \"{f.Value}\" is not met";
     }
 
     private static string ResolveFolder(ExportTask task, OutputSpec output, ComponentRecord comp)

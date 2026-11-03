@@ -57,6 +57,7 @@
 				"Filters": [
 					{ "Property": "Designer", "Operator": "Contains", "Value": "yuany" },
 					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "ABC" },
+					{ "Set": "Inventor User Defined Properties", "Property": "Length", "Operator": "LessThan", "Value": "200" },
 					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "DEF" }]
 			},
 			"Outputs": [
@@ -76,8 +77,8 @@
 	],
 
 	"Rollup": {
-		"Mode": "Structured",
-		"IncludeAssemblies": true
+		"Mode": "Occurrence",
+		"IncludeAssemblies": false
 	},
 
 	"BomColumns": [

@@ -6,7 +6,7 @@
 	"Tasks": [
 		{
 			"Name": "Drawings",
-			"FolderTemplate": "{task}/{format}/{type}",
+			"FolderTemplate": "{task}/{format}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
 				"DocumentTypes": [ "Part", "SheetMetal" ]
@@ -15,8 +15,8 @@
 				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
 				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
 				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
-				{ "Format": "xlxs", "Folder": "Tables", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
-				{ "Format": "csv", "Folder": "Tables" }
+				{ "Format": "Xlsx", "Folder": "Tables", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+				{ "Format": "Csv", "Folder": "Tables" }
 			]
 		}
 	],
