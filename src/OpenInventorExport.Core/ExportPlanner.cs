@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
@@ -14,6 +15,16 @@ public class ExportJob
     public string TaskName { get; set; } = "";
     public string ModelPath { get; set; } = "";
     public string DocumentType { get; set; } = "";
+    public OutputSpec Output { get; set; } = new();
+    public string OutputPath { get; set; } = "";
+    public JobState State { get; set; }
+    public string? Detail { get; set; }
+}
+
+/// <summary>One table file to write. Planned jobs are written; Conflict jobs are only reported.</summary>
+public class TableJob
+{
+    public string TaskName { get; set; } = "";
     public OutputSpec Output { get; set; } = new();
     public string OutputPath { get; set; } = "";
     public JobState State { get; set; }
@@ -39,6 +50,8 @@ public static class ExportPlanner
             string model = PathUtil.StripMemberSuffix(comp.FullPath!);
             foreach (var output in task.Outputs)
             {
+                if (IsTable(output.Format)) continue;   // tables are planned by PlanTables
+
                 string folder = ResolveFolder(task, output, comp);
                 string file = PathUtil.DrawingBaseName(model) + ExtensionFor(output.Format);
                 string outPath = Path.Combine(outputRoot, folder, file);
@@ -96,6 +109,43 @@ public static class ExportPlanner
     }
 
     /// <summary>
+    /// One job per table output. A table that would overwrite another table (same path, in this or
+    /// another task) is a Conflict. Tables never collide with component files: their extensions differ.
+    /// </summary>
+    public static List<TableJob> PlanTables(IEnumerable<ExportTask> tasks, string outputRoot)
+    {
+        var jobs = new List<TableJob>();
+        var claimed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var task in tasks)
+        {
+            foreach (var output in task.Outputs.Where(o => IsTable(o.Format)))
+            {
+                string root = task.FolderTemplate
+                    .Replace("{task}", Clean(task.Name))
+                    .Replace("{format}", output.Format.ToString().ToLowerInvariant())
+                    .Replace('/', Path.DirectorySeparatorChar);
+                string name = Clean(string.IsNullOrWhiteSpace(output.Name) ? task.Name : output.Name!)
+                              + ExtensionFor(output.Format);
+                string path = Path.Combine(outputRoot, root, SubFolder(output), name);
+
+                var job = new TableJob { TaskName = task.Name, Output = output, OutputPath = path, State = JobState.Planned };
+                if (claimed.TryGetValue(path, out var owner))
+                {
+                    job.State = JobState.Conflict;
+                    job.Detail = $"Same output file as task '{owner}'";
+                }
+                else
+                {
+                    claimed[path] = task.Name;
+                }
+                jobs.Add(job);
+            }
+        }
+        return jobs;
+    }
+
+    /// <summary>
     /// One representative component per unique model file that passes the selection. A file is left out
     /// only if every one of its occurrences is rejected; the first rejection is the reason reported.
     /// Virtual and unresolved components have no exportable file and are not reported here.
@@ -142,6 +192,12 @@ public static class ExportPlanner
         return chosen;
     }
 
+    /// <summary>The unique model files (member suffix stripped) the task selects. Used by the package table.</summary>
+    internal static HashSet<string> SelectedFiles(Snapshot snapshot, ExportTask task) =>
+        new HashSet<string>(
+            Select(snapshot, task, null).Select(c => PathUtil.StripMemberSuffix(c.FullPath!)),
+            StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Why this occurrence does not pass the selection, or null if it passes.</summary>
     private static (ExclusionReason Reason, string? Detail)? Reject(
         ComponentRecord c, BomVisibility.Verdict verdict, ExportSelection sel)
@@ -161,7 +217,7 @@ public static class ExportPlanner
 
         foreach (var f in sel.Filters)
             if (!Passes(c, f))
-                return (ExclusionReason.PropertyFilter, $"{f.Property} {f.Operator} \"{f.Value}\" is not met");
+                return (ExclusionReason.PropertyFilter, NotMet(c, f));
 
         return null;
     }
@@ -177,18 +233,45 @@ public static class ExportPlanner
             case FilterOperator.Contains: return value.IndexOf(wanted, StringComparison.OrdinalIgnoreCase) >= 0;
             case FilterOperator.IsEmpty: return value.Length == 0;
             case FilterOperator.IsNotEmpty: return value.Length > 0;
+            case FilterOperator.LessThan: return TryNumbers(value, wanted, out var a1, out var b1) && a1 < b1;
+            case FilterOperator.LessThanOrEqual: return TryNumbers(value, wanted, out var a2, out var b2) && a2 <= b2;
+            case FilterOperator.GreaterThan: return TryNumbers(value, wanted, out var a3, out var b3) && a3 > b3;
+            case FilterOperator.GreaterThanOrEqual: return TryNumbers(value, wanted, out var a4, out var b4) && a4 >= b4;
             default: return false;
         }
     }
 
+    internal static bool IsNumeric(FilterOperator op) =>
+        op == FilterOperator.LessThan || op == FilterOperator.LessThanOrEqual ||
+        op == FilterOperator.GreaterThan || op == FilterOperator.GreaterThanOrEqual;
+
+    /// <summary>Reads both sides as numbers (invariant culture). A missing or non-numeric value fails the filter.</summary>
+    private static bool TryNumbers(string value, string wanted, out double a, out double b)
+    {
+        b = 0;
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out a)
+            && double.TryParse(wanted, NumberStyles.Float, CultureInfo.InvariantCulture, out b);
+    }
+
+    private static string NotMet(ComponentRecord c, PropertyFilter f)
+    {
+        string value = c.FindProperty(f.Set, f.Property)?.Value ?? "";
+        if (IsNumeric(f.Operator) && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            return $"{f.Property} is \"{value}\", which is not a number";
+        return $"{f.Property} {f.Operator} \"{f.Value}\" is not met";
+    }
+
     private static string ResolveFolder(ExportTask task, OutputSpec output, ComponentRecord comp)
     {
-        string folder = task.FolderTemplate
+        string root = task.FolderTemplate
             .Replace("{task}", Clean(task.Name))
             .Replace("{format}", output.Format.ToString().ToLowerInvariant())
             .Replace("{type}", Clean(comp.DocumentType));
-        return folder.Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(root.Replace('/', Path.DirectorySeparatorChar), SubFolder(output));
     }
+
+    private static string SubFolder(OutputSpec output) =>
+        (output.Folder ?? "").Trim().Replace('/', Path.DirectorySeparatorChar);
 
     private static string Clean(string s)
     {
@@ -205,7 +288,12 @@ public static class ExportPlanner
             case ExportFormat.Pdf: return ".pdf";
             case ExportFormat.Dwg: return ".dwg";
             case ExportFormat.Dxf: return ".dxf";
+            case ExportFormat.Csv: return ".csv";
+            case ExportFormat.Xlsx: return ".xlsx";
             default: return ".dwf";
         }
     }
+
+    /// <summary>Csv and Xlsx: one table per output instead of one file per component.</summary>
+    public static bool IsTable(ExportFormat f) => f == ExportFormat.Csv || f == ExportFormat.Xlsx;
 }

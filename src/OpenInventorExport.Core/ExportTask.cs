@@ -3,10 +3,15 @@ using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
 
-public enum ExportFormat { Step, Pdf, Dwg, Dxf, Dwf }
+/// <summary>Step, Pdf, Dwg, Dxf, Dwf are files per component. Csv and Xlsx are one table per output. New values go at the end.</summary>
+public enum ExportFormat { Step, Pdf, Dwg, Dxf, Dwf, Csv, Xlsx }
 public enum ExportSource { Model, Drawing }
 public enum ExportScope { TopLevelOnly, AllUniqueFiles }
-public enum FilterOperator { Equals, NotEquals, Contains, IsEmpty, IsNotEmpty }
+public enum FilterOperator
+{
+    Equals, NotEquals, Contains, IsEmpty, IsNotEmpty,
+    LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual
+}
 
 /// <summary>One property test, e.g. Material Equals "Steel". Comparisons ignore case.</summary>
 public class PropertyFilter
@@ -34,22 +39,36 @@ public class ExportSelection
     public ContentCenterMode ContentCenter { get; set; } = ContentCenterMode.Include;
 }
 
-/// <summary>One format to produce for each selected component.</summary>
+/// <summary>
+/// One thing to produce in the task's folder tree: a file per selected component (Step, Pdf, Dwg, Dxf, Dwf)
+/// or one table of everything the task selects (Csv, Xlsx).
+/// </summary>
 public class OutputSpec
 {
     public ExportFormat Format { get; set; }
+    /// <summary>Ignored for Csv and Xlsx.</summary>
     public ExportSource Source { get; set; }
     public PdfSheetMode PdfSheets { get; set; } = PdfSheetMode.AllInOne;
     /// <summary>DWG/DXF only. Optional layer/version mapping.</summary>
     public string? IniFile { get; set; }
+    /// <summary>Subfolder of the task's folder where this output goes. Relative, no '..'. Empty = the task's folder itself.</summary>
+    public string Folder { get; set; } = "";
+    /// <summary>Csv/Xlsx only. File name without extension. Empty = the task name.</summary>
+    public string? Name { get; set; }
+    /// <summary>Csv/Xlsx only. Property columns after File Name and Qty. Empty = the config's BomColumns.</summary>
+    public List<BomColumn> Columns { get; set; } = new();
+    /// <summary>Csv/Xlsx only. How rows are counted. Null = the config's Rollup.Mode.</summary>
+    public RollupMode? Mode { get; set; }
+    /// <summary>Csv/Xlsx only. What makes two components the same row. Null = the config's Rollup.Key.</summary>
+    public RollupKey? Key { get; set; }
 }
 
-/// <summary>A named deliverable: which components, which formats, where the files go.</summary>
+/// <summary>A named deliverable: which components, which outputs, where they go.</summary>
 public class ExportTask
 {
     public string Name { get; set; } = "";
     public ExportSelection Selection { get; set; } = new();
     public List<OutputSpec> Outputs { get; set; } = new();
-    /// <summary>Relative path under the output root. Tokens: {task}, {format}, {type}.</summary>
+    /// <summary>The task's root folder under the output root. Tokens: {task}, {format}, {type}. Each output's Folder goes below it.</summary>
     public string FolderTemplate { get; set; } = "{task}";
 }

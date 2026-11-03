@@ -1,33 +1,68 @@
 {
-	// Example config. Relative paths (IniFile) are relative to THIS file's folder.
 	"SchemaVersion": 1,
+
+	"Unresolved": "Warn",
 
 	"Tasks": [
 		{
-			"Name": "Drawings",
-			"FolderTemplate": "{task}/{format}",
+			"Name": "SheetMetalDrawings",
+			"FolderTemplate": "{task}",
 			"Selection": {
 				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Part", "SheetMetal" ],
+				"DocumentTypes": [ "SheetMetal" ],
 				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
 				"ContentCenter": "Exclude"
 			},
 			"Outputs": [
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne", "Folder": "PDF" },
+				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
+				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
+				{ "Format": "Xlsx", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+				{ "Format": "Csv" }
+			]
+		},
 				{
-					"Format": "Pdf",
-					"Source": "Drawing",
-					"PdfSheets": "AllInOne"
-				},
-				{
-					"Format": "Dwg",
-					"Source": "Drawing",
-					"IniFile": "dwg-one-sheet.ini"
-				},
-				{
-					"Format": "Dxf",
-					"Source": "Drawing",
-					"IniFile": "dxf-one-sheet.ini"
-				}
+			"Name": "PartDrawings",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part" ],
+				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
+				"ContentCenter": "Include"
+			},
+			"Outputs": [
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
+				{ "Format": "Csv" }
+			]
+		},
+		{
+			"Name": "AssemblyDrawings",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Assembly"],
+				"ContentCenter": "Exclude"
+			},
+			"Outputs": [
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" }
+			]
+		},
+		{
+			"Name": "StepFiles",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part" ],
+				"ContentCenter": "Exclude",
+				"Filters": [
+					{ "Property": "Designer", "Operator": "Contains", "Value": "yuany" },
+					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "ABC" },
+					{ "Set": "Inventor User Defined Properties", "Property": "Length", "Operator": "LessThan", "Value": "200" },
+					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "DEF" }]
+			},
+			"Outputs": [
+				{ "Format": "step", "Source": "Model" },
+				{ "Format": "Csv", "Columns": [ { "Name": "Part Number" }, { "Name": "Designer" } ]}
 			]
 		}
 	],
@@ -42,11 +77,9 @@
 	],
 
 	"Rollup": {
-		"Mode": "Structured",
-		"IncludeAssemblies": true
+		"Mode": "Occurrence",
+		"IncludeAssemblies": false
 	},
-
-	"Unresolved": "Warn",
 
 	"BomColumns": [
 		{ "Name": "Part Number" },

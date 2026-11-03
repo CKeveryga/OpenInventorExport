@@ -97,6 +97,10 @@ public static class ExportConfigJson
 
         problems.AddRange(ValidateProperties(config.Properties));
         problems.AddRange(ValidateColumns(config.BomColumns));
+        foreach (var task in config.Tasks)
+            foreach (var o in task.Outputs.Where(o => o.Columns.Count > 0))
+                problems.AddRange(ValidateColumns(o.Columns)
+                    .Select(p => $"Task '{task.Name}' {o.Format} output: {p}"));
         problems.AddRange(BomStructurePolicy.Validate(config.Rollup.BomStructures, "Rollup"));
 
         if (problems.Count > 0)
