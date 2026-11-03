@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using OpenInventorExport.Core.Model;
 
 namespace OpenInventorExport.Core;
@@ -52,4 +53,23 @@ public class ExportTask
     public List<OutputSpec> Outputs { get; set; } = new();
     /// <summary>Relative path under the output root. Tokens: {task}, {format}, {type}.</summary>
     public string FolderTemplate { get; set; } = "{task}";
+    /// <summary>Optional. If present, the task also writes a table of what it delivers. Null = files only.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PackageSpec? Package { get; set; }
+}
+
+public enum TableFormat { Xlsx, Csv }
+
+/// <summary>What a task delivers besides its files: a table, and later a zip.</summary>
+public class PackageSpec
+{
+    /// <summary>Table files to write. Empty = none.</summary>
+    public List<TableFormat> Table { get; set; } = new();
+    /// <summary>Empty = the config's top-level BomColumns.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RollupOptions? Rollup { get; set; }
+    /// <summary>Empty = the config's top-level BomColumns.</summary>
+    public List<BomColumn> Columns { get; set; } = new();
+    /// <summary>Zip the table and the exported files. NOT BUILT YET: read and validated only.</summary>
+    public bool Zip { get; set; } = false;
 }

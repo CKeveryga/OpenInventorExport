@@ -43,6 +43,21 @@ public static class ExportTaskValidator
 
         problems.AddRange(BomStructurePolicy.Validate(task.Selection.BomStructures, $"Task '{task.Name}'"));
 
+        if (task.Package != null)
+        {
+            var pkg = task.Package;
+            string who = $"Task '{task.Name}' package";
+
+            if (pkg.Table.Count == 0 && !pkg.Zip)
+                problems.Add($"{who}: does nothing. Add a Table format or set Zip.");
+            if (pkg.Table.Count == 0 && (pkg.Columns.Count > 0 || pkg.Rollup != null))
+                problems.Add($"{who}: Columns or Rollup are set but Table is empty, so no table would be written.");
+            if (pkg.Table.Distinct().Count() != pkg.Table.Count)
+                problems.Add($"{who}: Table lists a format more than once.");
+            if (pkg.Rollup != null)
+                problems.AddRange(BomStructurePolicy.Validate(pkg.Rollup.BomStructures, who));
+        }
+
         return problems;
     }
 }

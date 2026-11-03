@@ -59,15 +59,30 @@ internal static class Actions
         }
     }
 
-    public static void Plan(Snapshot snapshot, ExportConfig config, string outRoot)
+    /// <summary>The task named by --only (ignoring case), or all tasks if none is named. Throws if the name is unknown.</summary>
+    public static List<ExportTask> SelectTasks(ExportConfig config, string? only)
     {
+        if (string.IsNullOrWhiteSpace(only)) return config.Tasks;
+        var match = config.Tasks.Where(t => t.Name.Equals(only, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (match.Count == 0)
+            throw new ArgumentException(
+                $"No task named '{only}'. Tasks in the config: {string.Join(", ", config.Tasks.Select(t => t.Name))}.");
+        return match;
+    }
+
+    public static void Plan(Snapshot snapshot, ExportConfig config, string outRoot, string? only = null)
+    {
+        var tasks = SelectTasks(config, only);
         var exclusions = new List<ExclusionRecord>();
-        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
+        var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
         PrintIncompleteWarning(snapshot, config);
         PrintProjectWarning(snapshot, jobs);
-        PrintContentCenterNote(snapshot, config.Tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
+        PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
         PrintExclusions(exclusions);
+        foreach (var t in tasks.Where(t => t.Package != null))
+            Console.WriteLine($"Package '{t.Name}': table {(t.Package!.Table.Count == 0 ? "none" : string.Join(", ", t.Package.Table))}" +
+                              (t.Package.Zip ? ", zip (not built yet)" : ""));
         foreach (var j in jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
     }
@@ -76,9 +91,13 @@ internal static class Actions
     public const int ExitIncomplete = 2;
 
     /// <param name="confirm">Optional last check, given the number of planned jobs. Return false to cancel.</param>
+    /// <param name="only">Optional task name: run just that task (and its package).</param>
     /// <returns>0 for a complete run, ExitIncomplete if components were unreadable.</returns>
-    public static int Export(Snapshot snapshot, ExportConfig config, string outRoot, Func<int, bool>? confirm = null)
+    public static int Export(Snapshot snapshot, ExportConfig config, string outRoot,
+        Func<int, bool>? confirm = null, string? only = null)
     {
+        var tasks = SelectTasks(config, only);   // a wrong name fails before anything else happens
+
         // Block: refuse before planning anything. Warn: carry on, and log every unreadable component.
         if (config.Unresolved == UnresolvedPolicy.Block)
             ThrowIfIncomplete(snapshot);
@@ -86,10 +105,10 @@ internal static class Actions
         PrintIncompleteBanner(unreadable);
 
         var exclusions = new List<ExclusionRecord>();
-        var jobs = ExportPlanner.PlanAll(snapshot, config.Tasks, outRoot, exclusions);
+        var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
         PrintPlanCounts(jobs);
         PrintProjectWarning(snapshot, jobs);
-        PrintContentCenterNote(snapshot, config.Tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
+        PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
         PrintExclusions(exclusions);
 
         int planned = jobs.Count(j => j.State == JobState.Planned);
@@ -115,11 +134,62 @@ internal static class Actions
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
         File.WriteAllText(Path.Combine(outRoot, "export-log.json"), ExportResultLog.ToJson(results));
 
+        WritePackages(tasks, snapshot, config, results, outRoot);
+
         foreach (var line in ExportResultLog.Summary(results))
             Console.WriteLine(line);
         Console.WriteLine($"Log written to: {outRoot}");
         PrintIncompleteBanner(unreadable);   // again at the end, where it is seen after a long run
         return unreadable.Count > 0 ? ExitIncomplete : 0;
+    }
+
+    /// <summary>
+    /// For each task with a Package: writes its table(s) to packages/&lt;task&gt;/ and says whether the
+    /// package is complete. Failed jobs are listed and marked in the table's Delivered column.
+    /// </summary>
+    private static void WritePackages(IEnumerable<ExportTask> tasks, Snapshot snapshot, ExportConfig config,
+        List<ExportResult> results, string outRoot)
+    {
+        foreach (var task in tasks.Where(t => t.Package != null))
+        {
+            var package = task.Package!;
+
+            if (package.Table.Count > 0)
+            {
+                string safe = PackageTable.SafeName(task.Name);
+                string folder = Path.Combine(outRoot, "packages", safe);
+                Directory.CreateDirectory(folder);
+
+                var rows = PackageTable.Rows(snapshot, task, config);
+                var columns = PackageTable.Columns(task, config);
+                var delivered = PackageTable.Delivered(task, results);
+
+                foreach (var format in package.Table)
+                {
+                    string path = Path.Combine(folder, safe + (format == TableFormat.Xlsx ? ".xlsx" : ".csv"));
+                    if (format == TableFormat.Xlsx)
+                        XlsxTableWriter.Write(path, rows, columns, null, delivered);
+                    else
+                        File.WriteAllText(path, CsvTableWriter.Write(rows, columns, delivered), new UTF8Encoding(true));
+                    Console.WriteLine($"Package '{task.Name}' table: {path} ({rows.Count} row(s))");
+                }
+            }
+
+            var failed = results.Where(r => r.TaskName == task.Name && r.Status != ExportStatus.Exported).ToList();
+            if (failed.Count > 0)
+            {
+                Console.WriteLine($"!! PACKAGE '{task.Name}' IS INCOMPLETE: {failed.Count} file(s) not exported:");
+                foreach (var r in failed)
+                    Console.WriteLine($"   [{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} {r.Detail}");
+            }
+            else
+            {
+                Console.WriteLine($"Package '{task.Name}': complete.");
+            }
+
+            if (package.Zip)
+                Console.WriteLine($"NOTE: Zip is set for '{task.Name}', but zipping is not built yet. The files are in the output folder.");
+        }
     }
 
     public static void Props(Snapshot snapshot, ExportConfig config)
@@ -339,12 +409,13 @@ internal static class Interactive
             case "2": LoadSaved(); return true;
             case "3": { var s = EnsureSnapshot(); if (s != null) Actions.Summary(s); return true; }
             case "4":
-                if (TryGetInputs(out var s4, out var c4)) Actions.Plan(s4, c4, _outRoot);
+                if (TryGetInputs(out var s4, out var c4)) Actions.Plan(s4, c4, _outRoot, AskTask(c4));
                 return true;
             case "5":
                 if (TryGetInputs(out var s5, out var c5))
                     Actions.Export(s5, c5, _outRoot, n =>
-                        Confirm($"Run {n} export jobs now? Inventor must be running. Files go to {_outRoot}"));
+                        Confirm($"Run {n} export jobs now? Inventor must be running. Files go to {_outRoot}"),
+                        AskTask(c5));
                 return true;
             case "6":
                 if (TryGetInputs(out var s6, out var c6)) Actions.Props(s6, c6);
@@ -498,6 +569,15 @@ internal static class Interactive
 
     private static bool Confirm(string prompt) =>
         Ask(prompt + " (y/N)", "n").StartsWith("y", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Which task to run. Null = all. Not asked when the config has only one task.</summary>
+    private static string? AskTask(ExportConfig config)
+    {
+        if (config.Tasks.Count < 2) return null;
+        Console.WriteLine("Tasks: " + string.Join(", ", config.Tasks.Select(t => t.Name)));
+        string answer = Ask("Task name (Enter = all)");
+        return answer.Length == 0 ? null : answer;
+    }
 }
 
 /// <summary>One-shot commands for scripts: the first argument is the command.</summary>
@@ -518,6 +598,7 @@ internal static class Cli
         Options (plan, export, props, bom):
           --from <snapshot.json>      Use a saved snapshot instead of collecting from Inventor.
           --config <file.json>        Config file. Default: config/export.config.json.
+          --only <task>               (plan/export) run just that task and its package.
 
         outDir defaults to ./output. Commands that collect need Inventor running
         with the assembly as the active document.
@@ -570,6 +651,9 @@ internal static class Cli
     {
         string? from = TakeOption(rest, "--from");
         string? configPath = TakeOption(rest, "--config");
+        string? only = TakeOption(rest, "--only");
+        if (only != null && command is not ("plan" or "export"))
+            throw new ArgumentException("--only works with 'plan' and 'export' only.");
         if (from != null && command == "snapshot")
             throw new ArgumentException("'snapshot' collects from Inventor, so --from makes no sense here.");
         if (configPath != null && command == "snapshot")
@@ -585,6 +669,7 @@ internal static class Cli
                     $"No config file. Pass --config <file> or create config/{Actions.DefaultConfigName}.");
             config = Actions.LoadConfig(path);
             Console.WriteLine($"Using config: {Path.GetFullPath(path)}");
+            if (only != null) Actions.SelectTasks(config, only);
         }
 
         string outRoot = Path.GetFullPath(rest.Count > 0 ? rest[0] : "output");
@@ -604,8 +689,8 @@ internal static class Cli
         switch (command)
         {
             case "snapshot": Actions.Summary(snapshot); break;
-            case "plan": Actions.Plan(snapshot, config!, outRoot); break;
-            case "export": return Actions.Export(snapshot, config!, outRoot);
+            case "plan": Actions.Plan(snapshot, config!, outRoot, only); break;
+            case "export": return Actions.Export(snapshot, config!, outRoot, null, only);
             case "props": Actions.Props(snapshot, config!); break;
             case "bom": Actions.Bom(snapshot, config!, outRoot); break;
         }

@@ -142,6 +142,12 @@ public static class ExportPlanner
         return chosen;
     }
 
+    /// <summary>The unique model files (member suffix stripped) the task selects. Used by the package table.</summary>
+    internal static HashSet<string> SelectedFiles(Snapshot snapshot, ExportTask task) =>
+        new HashSet<string>(
+            Select(snapshot, task, null).Select(c => PathUtil.StripMemberSuffix(c.FullPath!)),
+            StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Why this occurrence does not pass the selection, or null if it passes.</summary>
     private static (ExclusionReason Reason, string? Detail)? Reject(
         ComponentRecord c, BomVisibility.Verdict verdict, ExportSelection sel)

@@ -3,14 +3,16 @@
 	"SchemaVersion": 1,
 
 	"Unresolved": "Warn",
+	"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
 
 	"Tasks": [
 		{
-			"Name": "Drawings",
+			"Name": "SheetMetalDrawings",
 			"FolderTemplate": "{task}/{format}",
+			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
 			"Selection": {
 				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Part", "SheetMetal" ],
+				"DocumentTypes": [ "SheetMetal" ],
 				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
 				"ContentCenter": "Exclude"
 			},
@@ -29,6 +31,41 @@
 					"Format": "Dxf",
 					"Source": "Drawing",
 					"IniFile": "dxf-one-sheet.ini"
+				}
+			]
+		},
+				{
+			"Name": "PartDrawings",
+			"FolderTemplate": "{task}/{format}",
+			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part" ],
+				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
+				"ContentCenter": "Include"
+			},
+			"Outputs": [
+				{
+					"Format": "Pdf",
+					"Source": "Drawing",
+					"PdfSheets": "AllInOne"
+				}
+			]
+		},
+				{
+			"Name": "AssemblyDrawings",
+			"FolderTemplate": "{task}/{format}",
+			//"Package": { "Table": [ "Xlsx", "Csv" ], "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Assembly"],
+				"ContentCenter": "Exclude"
+			},
+			"Outputs": [
+				{
+					"Format": "Pdf",
+					"Source": "Drawing",
+					"PdfSheets": "AllInOne"
 				}
 			]
 		}

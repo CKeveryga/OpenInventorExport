@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -6,11 +7,13 @@ namespace OpenInventorExport.Core;
 
 public static class CsvTableWriter
 {
-    public static string Write(IEnumerable<ExportRow> rows, IReadOnlyList<(string Set, string Name)> propertyColumns)
+    public static string Write(IEnumerable<ExportRow> rows, IReadOnlyList<(string Set, string Name)> propertyColumns,
+        Func<ExportRow, string>? delivered = null)
     {
         var sb = new StringBuilder();
         var header = new List<string> { "File Name", "Qty" };
         header.AddRange(propertyColumns.Select(c => c.Name));
+        if (delivered != null) header.Add("Delivered");
         header.Add("Status");
         sb.AppendLine(string.Join(",", header.Select(Escape)));
 
@@ -23,6 +26,7 @@ public static class CsvTableWriter
             };
             foreach (var col in propertyColumns)
                 cells.Add(row.Component.FindProperty(col.Set, col.Name)?.Value ?? "");
+            if (delivered != null) cells.Add(delivered(row));
             cells.Add(row.Component.IsUnresolved ? "Unresolved" : "");
             sb.AppendLine(string.Join(",", cells.Select(Escape)));
         }
