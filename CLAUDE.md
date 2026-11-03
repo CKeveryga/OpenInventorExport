@@ -1,16 +1,16 @@
 # OpenInventorExport — Project Guide
 
 > Source of truth for Claude (and any human contributor). Read fully before suggesting code or architecture.
-> Update whenever a decision changes. **Last updated: 2026-11-02. Tagged through v0.5.1. Config v1 is complete (step 5 done). The rules engine is built in Core (BOM structure rules, exclusion report, Content Center, unresolved policy); some of its defaults wait on Inventor checks (see 4.11).**
+> Update whenever a decision changes. **Last updated: 2026-11-02. Tagged through v0.6 (owner is tagging it now; confirm the number). Config v1 is complete. The rules engine is built in Core. XLSX and table outputs (Csv/Xlsx as task outputs, with folders) are built. Some defaults wait on Inventor checks (see 4.11 and 4.14).**
 
 ---
 
 ## 0. Where we are right now (read this first)
 
-**Status:** Milestones 0–2.5, the file-export task runner (#7), read-only property schema validation (#4), config file v1 (all 5 steps, CLI wired), the Content Center flag, unresolved-component handling and policy, active-project recording and check, BOM structure rules and the exclusion report are done and validated against real Inventor 2027 data (except where marked unverified).
+**Status:** Milestones 0–2.5, the file-export task runner (#7), read-only property schema validation (#4), config file v1 (all 5 steps, CLI wired), the Content Center flag, unresolved-component handling and policy, active-project recording and check, BOM structure rules and the exclusion report, **XLSX output, table outputs with per-output folders, names, columns, rollup mode and key, `--only`, and numeric property filters** are done and validated (except where marked unverified).
 
 - Repo: `OpenInventorExport` (GitHub), local path `C:\dev\OpenInventorExport`. Solution file is in the repo root.
-- `main` is buildable; work happens on short-lived feature branches. Tags so far, in order: `v0.2-csv`, `v0.3-task-runner` (as `v0.3.5`), `v0.3.6` (DWG/DXF sheet fix), `v0.3.7` (property schema validation), `v0.3.8` (snapshot property sets, schema v2), `v0.3.9` (fixtures + totals test), `v0.3.10` (config steps 1-3), `v0.4` (rollup key + BOM columns in config), `v0.4.1` (Content Center flag), `v0.4.2` (unresolved components + export gate), `v0.5` (config wired into the CLI, `PlanAll`, active project recorded and checked), `v0.5.1` (BOM structure rules, exclusion report, Content Center filter, `Unresolved` policy, exit code 2). Keep tags in order. (Owner to confirm: the rules-engine work may have been tagged in more than one step; v0.5.1 is the last tag.)
+- `main` is buildable; work happens on short-lived feature branches. Tags so far, in order: `v0.2-csv`, `v0.3-task-runner` (as `v0.3.5`), `v0.3.6` (DWG/DXF sheet fix), `v0.3.7` (property schema validation), `v0.3.8` (snapshot property sets, schema v2), `v0.3.9` (fixtures + totals test), `v0.3.10` (config steps 1-3), `v0.4` (rollup key + BOM columns in config), `v0.4.1` (Content Center flag), `v0.4.2` (unresolved components + export gate), `v0.5` (config wired into the CLI, `PlanAll`, active project recorded and checked), `v0.5.1` (BOM structure rules, exclusion report, Content Center filter, `Unresolved` policy, exit code 2), **`v0.6` (XLSX writer, table outputs, `Folder`, per-output `Mode`/`Key`, `--only`, numeric filters; owner is tagging it)**. Keep tags in order. (Owner to confirm: the rules-engine work may have been tagged in more than one step; v0.5.1 was the last tag before v0.6.)
 - **Hard rule (decided): this tool is READ-ONLY toward Inventor.** It never creates, edits or saves anything in Inventor files. Exports use `SaveCopyAs` and `Close(true)` only. Properties are gathered as they are; any adjusting happens later in Core, on snapshot data, via the rules engine. Do not propose write-back features.
 - **Current BOM validation against Inventor 2027** (expected values are Inventor's own, never this tool's output):
 
@@ -23,22 +23,27 @@
   A third assembly (rotary, `MOTORGRUPPE.iam`) has unresolved components, so Inventor cannot save a BOM for it. It is used only as a "loads and rolls up" fixture and for unresolved testing.
 - **Fixtures:** three `*snapshot.json` files in `samples/snapshots/` (schema version 2): robot, engine, rotary. They carry the Content Center and unresolved tags. **They do not have `ProjectFile`** (added in v0.5): it reads as null ("not recorded"). Re-collect them while the trial lasts, and check the project path for usernames before committing.
 - **File export verified on Inventor 2027:** STEP (model), PDF (drawing; all sheets and first sheet only), DWG, DXF, DWF (drawing) and DWF of the top-level model. The runner (`JobRunner`) executes planned jobs, writes one result per job, and detects extra files written by the translator.
-- **CLI is interactive:** run with no arguments for a menu; one-shot commands still work (section 5). `plan`, `export`, `props` and `bom` **need a config file** (default `config/export.config.json`, or `--config`). Exports are **blocked** while components could not be read, unless the config says `"Unresolved": "Warn"` (4.9).
-- **Verified (2026-11-02):** the active Inventor project matters for drawing exports. With the wrong project active, drawing jobs report `NoDrawing` (drawings are found through the active project's paths). STEP model exports are not affected. The CLI now warns about a project mismatch (4.12). Tests pass; the mismatch warning was seen working with a real mismatched project.
+- **Tables (new in v0.6, tested in Core and run by the owner from the CLI):** `Csv` and `Xlsx` are **output formats** like `Pdf`. A task's folder tree is configured with the task's `FolderTemplate` (root) plus each output's `Folder` (below the root). A table lists **every file its task selects**; the export log says what was actually delivered. See 4.13. There is **no `Package` concept any more** (it existed for a few hours, was replaced; a config containing `Package` is rejected).
+- **CLI is interactive:** run with no arguments for a menu; one-shot commands still work (section 5). `plan`, `export`, `props` and `bom` **need a config file** (default `config/export.config.json`, or `--config`). Exports are **blocked** while components could not be read, unless the config says `"Unresolved": "Warn"` (4.9). `plan` and `export` take `--only <task>` (the menu asks for a task name when the config has two or more tasks).
+- **Lesson (2026-11-02):** when a config fails to load, the CLI/menu keeps the previously loaded config and only prints `Config not loaded: ...`. The owner once tested a whole session against an old config without noticing. Always check for that line after loading, and a wrong-looking output folder name is a sign the old config is active.
+- **Verified (2026-11-02):** the active Inventor project matters for drawing exports. With the wrong project active, drawing jobs report `NoDrawing` (drawings are found through the active project's paths). STEP model exports are not affected. The CLI warns about a project mismatch (4.12).
 - **Rollup key (decided):** default is **Part Number** (matches Inventor), configurable to `FilePath`. Default mode stays `Flat`. Details in 4.4.
 - **Rules engine (built, tested in Core, checked by the owner against fixtures):** per-structure BOM rules, exclusion report, Content Center `Include|Exclude|Only`, `Unresolved: Block|Warn`. See 4.4, 4.6, 4.9, 4.10, 4.11. **Not yet verified against Inventor:** what Inventor does with the children of Phantom, Reference and Purchased assemblies. Defaults keep children (see 4.11).
 
-**Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; owner should confirm; about 25 days left as of 2026-11-02). After it expires nothing needing Inventor can be run or tested. **Prioritize Inventor-dependent work first.** Pure-Core work (XLSX/SQLite, config editor, further rules) can be built after the trial from saved snapshots.
+**Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; owner should confirm; about 25 days left as of 2026-11-02). After it expires nothing needing Inventor can be run or tested. **Prioritize Inventor-dependent work first.** Pure-Core work (SQLite, config editor, further rules, `Remainder`) can be built after the trial from saved snapshots. The owner said they will do the Inventor testing this week.
 
 **Next up (suggested order):**
 1. Inventor-dependent verification (owner does these while the trial lasts):
    - **BOM structure children test (most valuable):** a small test assembly outside the repo, never saved, with a **Phantom** sub-assembly (2 parts), a **Reference** sub-assembly (2 parts) and a **Purchased** sub-assembly (2 parts). Open the Parts Only and Structured BOM views, note which of the six parts are listed and with what quantities. Collect a snapshot (check the project path for usernames) and save it as a fixture. With Inventor's own numbers, Claude can set the real defaults for children (4.11) and add tests.
+   - **Units of numeric properties (new):** collect a snapshot of one real part with a known **Length** (user-defined or other number property) and check what number the snapshot stores against what Inventor displays (Inventor's internal length unit is believed to be centimetres, unverified). Do the same for **Mass** (believed kilograms, unverified; mass is mostly `0` in the fixtures). Numeric filters (4.14) compare the stored number with no unit conversion.
    - iPart / iAssembly members, virtual component properties, model states / LOD, timing on the largest assembly, whether `Part Icon` (a picture) appears in a fixture.
    - A `Warn` run (`"Unresolved": "Warn"`) on a copy of a small assembly with a renamed part file: check the banner before and after, `Unreadable` lines in `export-log.csv`, and exit code 2.
+   - A real `export` run with a table output and a `Folder` in a task, on a project with drawings (the owner ran one and it worked; note which assembly).
    - Re-collect the three fixtures so they carry `ProjectFile`. Add a small unresolved fixture.
 2. Based on the children test: set the Phantom / Reference / Purchased children defaults (one-line edits in `BomStructurePolicy`), add tests with the new fixture.
-3. XLSX (ClosedXML), SQLite, multiple exports per run.
-4. Config editor (WPF), add-in launcher, `net48` build and testing.
+3. **`Remainder` selection** ("every file no other task selects"), design in open question 17. Pure Core.
+4. SQLite output. Zip (one task-level option that zips the task's root folder; deliberately not built, see open question 19).
+5. Config editor (WPF), add-in launcher, `net48` build and testing.
 
 ---
 
@@ -49,6 +54,8 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
 **Why it exists:** Inventor's built-in export misses components depending on component state (suppressed, virtual, etc.), level of detail / model state, configuration, and other factors. This tool traverses the assembly itself and is explicit about what it includes and why.
 
 **Core promise:** Every occurrence is either exported or explicitly reported as skipped with a reason. Nothing is silently missing.
+
+**Typical use (owner's workflow):** a manufacturer needs several deliverables from one assembly, for example one folder for vendor A (sheet metal with `Vendor = "ABC"`, DXF and PDF plus a cut list), one for vendor B, one for everything else, plus an ERP import table with one line per placed item. Each deliverable is one **task** in the config.
 
 ---
 
@@ -62,13 +69,15 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
   - Flag risks early (licensing, Inventor API quirks, scope creep, the trial deadline).
   - **Be honest when writing Inventor API calls from memory** (member names may not compile first try or option keys may be wrong); ask for the exact error code and line when something fails. Do not guess translator option names.
   - **Do not decide open questions silently.** If CLAUDE.md lists something as open, ask the owner first. Lead with a recommendation on each so the owner can answer "agreed".
+  - **Check the shape of a design against the owner's real workflow before building** (2026-11-02: the first "package" design, with hardcoded `packages/` folders and a separate section, did not match what the owner wanted and was replaced after the first run). Describe how the config section will look in an example the owner can recognize, and ask about it, before writing code. When the owner says "it all feels wrong", first explain what each config section does today, with a table, before proposing changes.
   - Remind the owner to commit/push at sensible checkpoints and to tag in order. (Commit ≠ push.)
   - Record only verified behavior in this file; mark anything unverified as unverified. Claude only edits CLAUDE.md at the end of a chat, when the owner asks, and produces the whole file.
   - Claude's memory of Inventor's BOM rules is unreliable: say so, and ask for an Inventor test instead of deciding from memory.
 - **Only use code the owner wrote or has the rights to.** Do not copy code belonging to a previous employer or any third party into this repo.
-- The owner works in **Visual Studio 2022 (Windows)** and pastes exact error text/screenshots; CS error codes are the fastest way to diagnose. Test failures are reported by pasting the xUnit message.
+- The owner works in **Visual Studio 2022 (Windows)** and pastes exact error text/screenshots; CS error codes are the fastest way to diagnose. Test failures are reported by pasting the xUnit message. Claude cannot compile: say so and ask for errors.
 - Never commit Inventor sample/third-party model files. Test assemblies stay outside the repo. Commit only sanitized snapshot fixtures: check for usernames (including in `SourceFile` and `ProjectFile` paths), real names (Designer, Engineer, Author, Company properties) and company names before committing.
 - When experimenting with unresolved files, work on a **copy** of a small assembly outside the repo, rename (do not delete) part files, and do not save the assemblies.
+- Experiments with config go in their own file (e.g. `config/test-export.config.json`), never in `config/export.config.json`: `ExampleConfigTests` loads that one and a typo there fails the test suite (this happened on 2026-11-02).
 
 ---
 
@@ -76,11 +85,11 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
 
 ### In scope
 1. **Collect:** traverse an Inventor assembly and gather every occurrence with its properties (read-only).
-2. **Export tables:** CSV (done), XLSX, SQLite database, JSON; extensible.
-3. **Export files:** per component DWG, DXF, STEP, PDF, DWF via a task system (done; config-driven from the CLI).
+2. **Export tables:** CSV (done), XLSX (done), both as table outputs inside a task's folder tree; SQLite database and JSON later; extensible.
+3. **Export files:** per component DWG, DXF, STEP, PDF, DWF via a task system (done; config-driven from the CLI), with a configurable folder layout per task.
 4. **Property schema validation:** define expected properties and report missing/empty/wrong-type values (done, read-only).
 5. **Export configuration:** how many exports, what each contains, rules, file naming, destinations (config v1 done).
-6. **Rules engine:** include/exclude components by BOM structure (with child handling), Content Center membership, document type, properties; exclusion report; unresolved policy (done in Core). Occurrence-level rules (e.g. only parts under a given sub-assembly) are not built.
+6. **Rules engine:** include/exclude components by BOM structure (with child handling), Content Center membership, document type, properties (text and numeric tests); exclusion report; unresolved policy (done in Core). Occurrence-level rules (e.g. only parts under a given sub-assembly) and `Remainder` are not built.
 
 ### Out of scope
 Writing to Inventor files or properties (decided: never). Vault/PDM integration (design so it can be added), cloud/web hosting, non-Windows platforms, editing geometry.
@@ -100,7 +109,7 @@ Writing to Inventor files or properties (decided: never). Vault/PDM integration 
 | IDE | Visual Studio 2022 Community | |
 | Config format | JSON files + JSON Schema | Diffable, human-readable |
 | JSON | `System.Text.Json` (NuGet in Core), enums as strings | |
-| XLSX writer | **ClosedXML** (MIT). Do not use EPPlus | Licensing |
+| XLSX writer | **ClosedXML** (MIT), referenced in Core (`PackageReference` ClosedXML 0.104.2; the version was written from memory and built, but confirm in the csproj). **Do not pin below 0.102** (older versions turned `"001"` into a number). Do not use EPPlus | Licensing |
 | Database | SQLite first (`Microsoft.Data.Sqlite`) | Zero setup |
 | Config UI | WPF desktop app (separate from Inventor) | |
 | Tests | xUnit (net8.0) | |
@@ -123,9 +132,9 @@ Writing to Inventor files or properties (decided: never). Vault/PDM integration 
 │  OpenInventorExport.Core (pure C#, NO Inventor references)   │
 │  Model, SnapshotJson, SnapshotChecks, Rollup, BomTotals,     │
 │  BomStructurePolicy, Exclusions, ContentCenterFilter,        │
-│  CsvTableWriter, ExportTask/Validator/Planner,               │
-│  ExportResult(+Log), PropertySchema, ExportConfig(+Json/File),│
-│  DocumentTypes                                               │
+│  CsvTableWriter, XlsxTableWriter, TaskTable,                 │
+│  ExportTask/Validator/Planner, ExportResult(+Log),           │
+│  PropertySchema, ExportConfig(+Json/File), DocumentTypes     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -145,11 +154,15 @@ The snapshot is the test fixture mechanism: Core can be developed and tested wit
 ### 4.4 Quantity rollup (implemented, validated)
 
 Rollup is a **Core transformation on the snapshot**, never done during traversal. Modes (`RollupMode`):
-- `Occurrence`: one row per occurrence, qty 1.
-- `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain**, so the same sub-assembly under two different parents lists its children under each, and the same part in several assemblies gets a row under each.
-- `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels.
+- `Occurrence`: one row per occurrence, qty 1 (fits an ERP import that wants one line per placed item).
+- `Structured`: roll up within each parent. A parent is identified by its **full ancestor chain**, so the same sub-assembly under two different parents lists its children under each, and the same part in several assemblies gets a row under each (an indented BOM; fits a weldment BOM).
+- `Flat`: roll up across the whole tree; counting occurrences multiplies quantities through levels (the total to make or buy; fits cut lists and vendor lists).
+
+**Rollup mode only changes how table rows are counted** (the `bom` command and `Csv`/`Xlsx` outputs). It has **no effect on file exports**: a PDF or DXF export is always one file per unique model file.
 
 `RollupOptions` (also the `Rollup` section of the config file): `Mode` (default `Flat`), `IncludeAssemblies`, `IncludeRoot` (default false), `ExcludeSuppressed` (true), `BomStructures` (per-structure rules, 4.11), `ContentCenter` (`Include` default | `Exclude` | `Only`, 4.10), `Inseparable` (`AsSingleItem` | `IncludeChildren`; **null = Inventor's behavior for the mode**; a `BomStructures` rule for Inseparable with `Children` set takes precedence), `Key` (`RollupKey.PartNumber` default | `FilePath`). **`ExcludePhantom` and `ExcludeReference` no longer exist** (replaced by `BomStructures`); a config that still contains them is rejected by strict loading.
+
+**Who uses the top-level `Rollup` (important, this was a source of confusion):** the `bom` command uses all of it. Table outputs (4.13) use only its `Mode`, `Key` and `ExcludeSuppressed`, and **only as fallbacks**: an output's own `Mode` and `Key` win. A table forces `IncludeAssemblies`, `IncludeRoot` and `Inseparable = IncludeChildren` on, and takes `ContentCenter` and `BomStructures` from its task's `Selection`, because the task's selection decides what is listed.
 
 `Rollup.Apply(snapshot, options, exclusions?)` takes an optional list that receives one `ExclusionRecord` per occurrence a rule left out (4.11). Order of checks per component: root (skipped unless `IncludeRoot`), BOM visibility (suppressed, own structure, parent excluded), Content Center, then `IncludeAssemblies`.
 
@@ -169,46 +182,63 @@ Rollup is a **Core transformation on the snapshot**, never done during traversal
 
 ### 4.5 Configuration (v1: complete)
 
-The config file is the existing Core classes written as JSON, not a second model. v1 is a single file (splitting into several files is possible later):
+The config file is the existing Core classes written as JSON, not a second model. **One config file holds many tasks** (decided and confirmed 2026-11-02: one task per deliverable, for example one per vendor). v1 is a single file (splitting into several files is possible later):
 
 ```
 { "SchemaVersion": 1,
   "Unresolved": "Block" | "Warn",            // optional, default Block (4.9)
-  "Tasks": [ ExportTask... ],
-  "Properties": [ SchemaProperty... ],
-  "Rollup": { RollupOptions },
-  "BomColumns": [ { "Name": "...", "Set": "..." }... ] }
+  "Tasks": [ ExportTask... ],                // each task selects its own files by its own Selection
+  "Properties": [ SchemaProperty... ],       // a CHECK, selects nothing (4.8)
+  "Rollup": { RollupOptions },               // drives the bom command; fallback Mode/Key for tables (4.4)
+  "BomColumns": [ { "Name": "...", "Set": "..." }... ] }   // default columns for bom and for tables
 ```
 
-A shipped, tested example is `config/export.config.json` (Drawings task: PDF, DWG, DXF with relative ini paths; `Finish` property check; Flat parts-only BOM with Part Number, Description, Material; `"Unresolved": "Block"`). `ExampleConfigTests` loads it, so a format change cannot leave it broken.
+**What each section does (the owner was confused by this; keep this table accurate):**
+
+| Section | What it does | Applies to |
+|---|---|---|
+| `Tasks[].Selection` | Picks which files a task exports and lists in its tables (document type, property filters, BOM structure rules, Content Center). | Per task |
+| `Tasks[].Outputs` | What the task produces and where: files and tables, each with an optional `Folder`. | Per task |
+| `Rollup` (top level) | How the `bom` command counts rows. For tables only `Mode`/`Key` as fallbacks. | `bom`, table fallbacks |
+| `Properties` | A check that files have properties (e.g. Finish). Selects nothing. | `props` command only |
+| `BomColumns` | Default property columns for `bom` and for tables without their own `Columns`. | `bom`, tables |
+
+A shipped, tested example is `config/export.config.json` (Drawings task: PDF, DWG, DXF with relative ini paths; `Finish` property check; Flat parts-only BOM with Part Number, Description, Material; `"Unresolved": "Block"`; the owner may have added a table output). `ExampleConfigTests` loads it and requires: a task named `Drawings`, at least one ini file that resolves and exists, exactly 3 `BomColumns`, and `Rollup.IncludeAssemblies == false`. **A format change or a typo cannot be allowed to leave it broken.** Other example/experiment configs: `config/steponly-export.config.json`, `config/test-export.config.json` (not loaded by tests).
 
 Decided rules:
 - **Strict loading.** Unknown/misspelled names and unknown enum values are rejected (`UnmappedMemberHandling.Disallow`), never ignored. Enums are strings, names are case-insensitive, `//` comments and trailing commas are allowed. A missing or wrong `SchemaVersion` is rejected. Errors list every problem found.
-- **Validated on load:** each task through `ExportTaskValidator` (including its `BomStructures` rules); task names unique (ignoring case, because they become folder names); at least one task; `DocumentTypes` and `AppliesTo` against the fixed list in `DocumentTypes`; property and BOM column `Set` against the known sets; no blank or duplicate property or column (same Set + Name); `Rollup.BomStructures` (unknown or duplicate structure).
+- **Validated on load:** each task through `ExportTaskValidator` (including its `BomStructures` rules, output folders, table settings and filters); task names unique (ignoring case, because they become folder names); at least one task; `DocumentTypes` and `AppliesTo` against the fixed list in `DocumentTypes`; property and BOM column `Set` against the known sets (also for table `Columns`); no blank or duplicate property or column (same Set + Name); `Rollup.BomStructures` (unknown or duplicate structure).
 - **Paths:** relative paths (e.g. `IniFile`) are relative to the **folder containing the config file**. **Absolute paths are allowed** (local, vault, shared directory, UNC). A missing ini file is a load error, so a bad path can never fall back to the translator's last-used sheet setting.
 - **The loaded config holds resolved absolute paths. Never write it back to disk** (the config editor must keep its own unresolved copy, or relative paths would become absolute).
 - `Properties`, `Rollup`, `BomColumns` and `Unresolved` are optional. No `Properties` = no property check; no `Rollup` = `RollupOptions` defaults; no `BomColumns` = only File Name, Qty and Status columns. `ExportConfig.ToPropertySchema()` feeds `PropertySchemaValidator`; `ExportConfig.ToCsvColumns()` feeds `CsvTableWriter`. `PropertySchema.SchemaVersion` is unused (the file's version covers it).
-- **CLI wiring (done):** `plan`, `export`, `props` and `bom` load the config **before** collecting from Inventor, so a bad config fails fast. Default config: `config/export.config.json`, found by walking up from the exe (same as the ini files). `--config <file>` overrides. The interactive menu loads the default at startup (a problem is printed, never fatal), and menu item 10 loads or reloads a file; **a config that fails to load never replaces the one already loaded.** `snapshot` and `totals` do not use a config. `BomTotals` keeps default rollup rules on purpose.
-- Removing or renaming a config field is a breaking change: note it as a migration note (done once: `ExcludePhantom`/`ExcludeReference` removed from `Rollup`, replaced by `BomStructures`; no schema bump was made because no config had used them).
+- **CLI wiring (done):** `plan`, `export`, `props` and `bom` load the config **before** collecting from Inventor, so a bad config fails fast. Default config: `config/export.config.json`, found by walking up from the exe (same as the ini files). `--config <file>` overrides. The interactive menu loads the default at startup (a problem is printed, never fatal), and menu item 10 loads or reloads a file; **a config that fails to load never replaces the one already loaded** (see the lesson in section 0). `snapshot` and `totals` do not use a config. `BomTotals` keeps default rollup rules on purpose.
+- Removing or renaming a config field is a breaking change: note it as a migration note. Done twice, no schema bump either time because only the owner's configs were affected: (1) `ExcludePhantom`/`ExcludeReference` removed from `Rollup`, replaced by `BomStructures`; (2) **v0.6: the short-lived `Package` section (`Table`, `Columns`, `Rollup`, `Zip`) on a task was removed, replaced by `Csv`/`Xlsx` outputs (4.13)**. A config that still has `Package` is rejected.
 
 ### 4.6 Export tasks (implemented, tested)
 
-A **task** is one named deliverable. It has:
-- **Selection:** `Scope` (`TopLevelOnly` | `AllUniqueFiles`), `DocumentTypes` (empty = any), `Filters` (`PropertyFilter`: `Set`, `Property`, `Operator`, `Value`; AND-combined; Equals, NotEquals, Contains, IsEmpty, IsNotEmpty; case-insensitive; missing counts as empty; `Set` defaults to Design Tracking), `BomStructures` (per-structure rules, 4.11) and `ContentCenter` (`Include` default | `Exclude` | `Only`, 4.10). Vendor-style selections work today as ordinary property filters (e.g. Vendor Equals "XXX").
-- **Outputs:** list of `OutputSpec` (Format Step/Pdf/Dwg/Dxf/Dwf, Source Model/Drawing, `PdfSheets`, optional `IniFile` for DWG/DXF).
-- **FolderTemplate:** relative path under the output root with tokens `{task}`, `{format}`, `{type}`. Default `{task}`; `{task}/{format}` gives one folder per format.
+A **task** is one named deliverable and one folder tree. It has:
+- **Selection:** `Scope` (`TopLevelOnly` | `AllUniqueFiles`), `DocumentTypes` (empty = any), `Filters` (`PropertyFilter`: `Set`, `Property`, `Operator`, `Value`; AND-combined; text operators Equals, NotEquals, Contains, IsEmpty, IsNotEmpty (case-insensitive, missing counts as empty) and numeric operators LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual (4.14); `Set` defaults to Design Tracking), `BomStructures` (per-structure rules, 4.11) and `ContentCenter` (`Include` default | `Exclude` | `Only`, 4.10). Vendor-style selections work today as ordinary property filters (e.g. Vendor Equals "XXX"). There is **no OR** across values inside one task (use two tasks) and **no "everything the other tasks did not select"** yet (open questions 17, 18). The "rest" workaround is NotEquals filters for each other vendor.
+- **Outputs:** list of `OutputSpec`: file formats Step/Pdf/Dwg/Dxf/Dwf (with `Source` Model/Drawing, `PdfSheets`, optional `IniFile` for DWG/DXF) and table formats Csv/Xlsx (4.13). Every output has an optional `Folder`.
+- **FolderTemplate:** the task's **root folder** under the output root, with tokens `{task}`, `{format}`, `{type}`. Default `{task}`. Each output's `Folder` is a subfolder below that root (empty = the root itself). `{package}` is **not** a token (loading rejects it). `{type}` is rejected in a task that has a table, because a table covers the whole task. Example layout, built from the owner's wish:
+
+  ```
+  Package2/            (FolderTemplate "Package2")
+    DWG/  *.dwg, Package2.csv      outputs with "Folder": "DWG"
+    PDF/  *.pdf, Package2.csv      outputs with "Folder": "PDF"
+  ```
 
 Rules:
-- Valid combinations: STEP from Model only; PDF/DWG/DXF from Drawing only; DWF from either. Invalid combinations, unknown tokens, unknown document types, rooted paths and `..` are rejected up front by `ExportTaskValidator`.
+- Valid combinations: STEP from Model only; PDF/DWG/DXF from Drawing only; DWF from either; Csv/Xlsx need no `Source`. Invalid combinations, unknown tokens, unknown document types, rooted paths and `..` (in `FolderTemplate` or `Folder`) are rejected up front by `ExportTaskValidator`. **Two outputs with the same format and the same folder (and, for tables, the same name) in one task are rejected.**
 - Selection works on **unique model files** (member suffix stripped), not occurrences. **A file is left out only if every one of its occurrences is rejected** (e.g. a bolt inside a Purchased assembly whose children are excluded is still exported if it also sits elsewhere in the assembly). Suppressed, virtual and unresolved components are never selected.
 - **Default behavior change in v0.5.1:** tasks now leave out Phantom and Reference files by default (same as the BOM and Inventor); to export them, add a rule with `Include: true`. The exclusion report shows what was left out.
-- `ExportPlanner.Plan(snapshot, task, outRoot, exclusions?)` returns `ExportJob`s (`Planned` or `Conflict`). Same output path twice within a task → second is `Conflict`. **`ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions?)`** plans every task and also marks an output file two different tasks would both write as `Conflict`, so nothing is overwritten within a run. The CLI always uses `PlanAll`. (Files left over from earlier runs are overwritten by `SaveCopyAs`.)
+- `ExportPlanner.Plan(snapshot, task, outRoot, exclusions?)` returns `ExportJob`s (`Planned` or `Conflict`) for **file outputs only** (it skips tables). Same output path twice within a task → second is `Conflict`. **`ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions?)`** plans every task and also marks an output file two different tasks would both write as `Conflict`, so nothing is overwritten within a run. The CLI always uses `PlanAll`. **`ExportPlanner.PlanTables(tasks, outRoot)`** plans the table outputs (`TableJob`s) with the same Conflict rule across tasks. (Files left over from earlier runs are overwritten by `SaveCopyAs`.)
+- **The same file may be delivered into several folders** (e.g. a vendor folder and an archive folder, via two outputs of the same format with different `Folder`): different paths, so no conflict. The Inventor translator runs once per output (slow on big assemblies; copying the first result is a later optimization, not built).
 - Sheet metal is identified by `DocumentType == "SheetMetal"` (`SubType` is not set by the traverser).
 - Selection by BOM structure and Content Center is done. Selection by occurrence (e.g. only parts under a given sub-assembly) is not built (open question 10).
 
 ### 4.7 Job runner (implemented, verified)
 
-`JobRunner.Run(jobs, onResult)` returns **exactly one `ExportResult` per job**.
+`JobRunner.Run(jobs, onResult)` returns **exactly one `ExportResult` per file job**. It does not write tables (the CLI does, 4.13).
 - `ExportResult.ForJob`: Conflict jobs stay `Conflict`; every other job starts as `Failed` ("Not run") so an unexecuted job can never look like a success (`Exported` is enum value 0).
 - Drawing jobs: find drawing via `DrawingLocator`, verify it references the model (`DrawingMismatch` otherwise), `NoDrawing` if none found (the detail names the active project: `... (active project: Engine)`). Model jobs: file must exist.
 - Uses the document if the user already has it open; otherwise opens invisibly and closes with `Close(true)`.
@@ -216,10 +246,12 @@ Rules:
 - DWG/DXF: sheet 1 is activated before saving (translator exports the active sheet when `ALL SHEETS=No`) and the previous sheet is restored afterwards.
 - `ExportResultLog`: `ToCsv` (people), `ToJson` (tools), `Summary` (counts per status).
 - `ExportStatus`: `Exported, NoDrawing, DrawingMismatch, Failed, Conflict, Unreadable` (new values are always added at the end so `Exported` stays 0). `Unreadable` is not produced by the runner; the CLI adds one result per unreadable component under `Warn` (4.9) via `ExportResult.ForUnreadable`.
+- **Tables in the log:** the CLI adds one result per table output with `ModelPath = "(table)"`, `OutputPath` = the table file, `Detail` = `"N row(s)"` on success, status `Exported`, `Failed` (write error) or `Conflict`. A table that fails to write therefore shows up like any other failure.
+- **Failure reporting:** after a run the CLI prints, per task, `Task 'X': complete.` or `!! TASK 'X' IS INCOMPLETE: N output(s) not exported (see export-log.csv)` with the first 10 problems. Failed jobs do **not** change the exit code (only unreadable components give 2).
 
 ### 4.8 Property schema validation (implemented, read-only)
 
-`SchemaProperty` (`Set`, `Name`, `DataType`, `Required`, `AppliesTo`) in a `PropertySchema`. `PropertySchemaValidator.Validate(snapshot, schema)` checks each unique model file once and returns `PropertyIssue`s: `Missing`, `Empty` (only when `Required`), `WrongType`. Suppressed, virtual and unresolved components are skipped (an unresolved file has no properties, so checking it would report false `Missing` findings). It reads the snapshot only, so it works after the trial. In the CLI, `props` reads the schema from the config's `Properties` (says so and does nothing if there are none).
+`SchemaProperty` (`Set`, `Name`, `DataType`, `Required`, `AppliesTo`) in a `PropertySchema`. `PropertySchemaValidator.Validate(snapshot, schema)` checks each unique model file once and returns `PropertyIssue`s: `Missing`, `Empty` (only when `Required`), `WrongType`. Suppressed, virtual and unresolved components are skipped (an unresolved file has no properties, so checking it would report false `Missing` findings). It reads the snapshot only, so it works after the trial. In the CLI, `props` reads the schema from the config's `Properties` (says so and does nothing if there are none). **It is a global check and selects nothing**; it is not per task (decided to keep it that way: "does every file have a Finish?" is a different question from "which files go to vendor A?").
 
 **Property storage in the snapshot (schema v2):** `ComponentRecord.PropertySets` is `set name → property name → PropertyValue`, mirroring Inventor. Names only have to be unique within a set. Set names are constants in `PropertySetNames` (`Design Tracking Properties`, `Inventor User Defined Properties`). Use `FindProperty(set, name)`. `SetProperty` only changes the in-memory record. An existing but empty set is stored as empty; an unreadable/missing set is absent.
 
@@ -231,7 +263,7 @@ Rules:
 
 **How the traverser records it:** the occurrence is added to `Components` with `IsUnresolved = true`, `DocumentType = "Unknown"`, `FullPath` from the descriptor and no properties, **and** to `Skipped` as `FileMissing` with the file path in `Detail`. Unresolved assemblies are recorded the same way; **their children cannot be seen and are not recorded** (confirmed). `FileMissing` is also used if the file name itself cannot be read.
 
-**In lists:** rollups include unresolved components. The BOM CSV has a `Status` column that says `Unresolved` for them. Because their type is `Unknown`, an unresolved `.iam` also appears in Parts Only (`IncludeAssemblies = false` does not hide it); it is visible and flagged, which is accepted. Planner and property check skip them (4.6, 4.8). They are not reported in the exclusion report (they are handled here).
+**In lists:** rollups include unresolved components. The BOM CSV has a `Status` column that says `Unresolved` for them (XLSX: same text plus a light yellow row). Because their type is `Unknown`, an unresolved `.iam` also appears in Parts Only (`IncludeAssemblies = false` does not hide it); it is visible and flagged, which is accepted. Planner and property check skip them (4.6, 4.8). They are not reported in the exclusion report (they are handled here).
 
 **What makes the list incomplete:** `SnapshotChecks.BlockingProblems(snapshot)` returns `FileMissing` entries plus `Error` entries whose occurrence is **not** in `Components` (so it is absent from the list). Suppressed, virtual, reference and rule exclusions are deliberate and never count; an `Error` on a component that is still listed (e.g. unreadable virtual properties) does not count.
 
@@ -259,13 +291,41 @@ The summary line `Content Center parts: N (flag not recorded on M parts)` counts
 
 **UNVERIFIED (open, needs the Inventor children test in section 0):** what Inventor does with children of Phantom (believed from memory: the item is not listed but its children are promoted into the parent, so keeping children is likely right), Reference (believed: item and children left out of the BOM, so the default may need to become `Children: Exclude`) and Purchased assemblies. The robot and engine totals match Inventor with children kept, which only shows those assemblies probably contain none of these cases. After the test, changing a default is a one-line edit in `BomStructurePolicy`'s constructor, plus tests from a new fixture.
 
-**Exclusion report (resolves open question 2):** the snapshot stays a factual record; applying the rules produces `ExclusionRecord`s (`Context` = "BOM" or the task name, `OccurrencePath`, `FileName`, `Reason`, `Detail`). `ExclusionReason`: `Suppressed, BomStructure, ParentExcluded, DocumentType, PropertyFilter, Scope, ContentCenter`. The BOM reports per occurrence; tasks report **once per unique file**, with the first rejection found. **Deliberately not reported:** the root, virtual and unresolved components, and assemblies hidden by `IncludeAssemblies: false` (a view choice, not a lost part). `Rollup.Apply` and `ExportPlanner.Plan/PlanAll` take an optional `List<ExclusionRecord>`. `BomVisibility` (internal) is the shared "is this component visible under the rules" logic. Files: `export-excluded.csv` (written by `export`) and `bom-<mode>-excluded.csv` (written by `bom`); with nothing excluded the old file is deleted so it cannot mislead. The CLI prints `Left out by rules: <context> / <reason>: <count>` lines after `plan`, `export` and `bom`.
+**Exclusion report (resolves open question 2):** the snapshot stays a factual record; applying the rules produces `ExclusionRecord`s (`Context` = "BOM" or the task name, `OccurrencePath`, `FileName`, `Reason`, `Detail`). `ExclusionReason`: `Suppressed, BomStructure, ParentExcluded, DocumentType, PropertyFilter, Scope, ContentCenter`. The BOM reports per occurrence; tasks report **once per unique file**, with the first rejection found. **Deliberately not reported:** the root, virtual and unresolved components, and assemblies hidden by `IncludeAssemblies: false` (a view choice, not a lost part). `Rollup.Apply` and `ExportPlanner.Plan/PlanAll` take an optional `List<ExclusionRecord>`. `BomVisibility` (internal) is the shared "is this component visible under the rules" logic. Files: `export-excluded.csv` (written by `export`) and `bom-<mode>-excluded.csv` (written by `bom`); with nothing excluded the old file is deleted so it cannot mislead. The CLI prints `Left out by rules: <context> / <reason>: <count>` lines after `plan`, `export` and `bom`. The XLSX writer can put the records on a second sheet "Left out" (only if there are any); the CLI does not use that yet (the `bom` command's temporary XLSX line may pass them).
 
 ### 4.12 Active project recording and check (implemented, verified)
 
 **Why:** drawing lookup (`DrawingLocator.Find`, via `DesignProjectManager.ResolveFile`) depends on the **active Inventor project**. With the wrong project active, every drawing job reports `NoDrawing`. Collection and STEP model exports do not depend on it (verified).
 
 `Snapshot.ProjectFile` (`string?`, additive, null = not recorded) stores the full file name of the active project at collection (`AssemblyTraverser.TryGetProjectFile`). `SnapshotSummary` shows `Project: <file>` or `(not recorded)`. `SnapshotChecks.ProjectMismatch(snapshot, activeProjectFile)` returns a WARNING string, or null when the projects match (ignoring case) or either side is unknown. `plan` and `export` print it **only if drawing jobs are planned**, and stay quiet when Inventor is not running (`plan --from` offline). Warning only, never blocks (decided: a block would be stricter than the problem deserves). The full path is stored, so two same-named projects in different folders are told apart. It may contain a Windows username: check it before committing a fixture.
+
+### 4.13 Table outputs and XLSX (implemented v0.6, tested in Core; CLI path run by the owner)
+
+**Design (decided 2026-11-02, after the first "package" design was thrown away):** a table is just another **output** of a task, placed in the task's folder tree like a PDF. There is no separate package section and no `packages/` folder.
+
+```json
+"Outputs": [
+  { "Format": "Pdf",  "Source": "Drawing", "Folder": "PDF" },
+  { "Format": "Xlsx", "Name": "CutList",     "Mode": "Flat",       "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+  { "Format": "Csv",  "Name": "WeldmentBom", "Mode": "Structured" },
+  { "Format": "Csv",  "Name": "ErpImport",   "Mode": "Occurrence", "Key": "FilePath", "Folder": "ERP" }
+]
+```
+
+- `Format` `Csv` or `Xlsx` (appended to the `ExportFormat` enum). `Source` is ignored.
+- `Folder`: subfolder of the task's root (empty = the root). `Name`: file name without extension (default: the task name; no invalid file-name characters). `Columns`: property columns after File Name and Qty (default: the config's `BomColumns`). `Mode` / `Key`: rollup mode and key for this table (default: the config's `Rollup.Mode` / `Rollup.Key`). **`Mode` and `Key` are per output because one task often needs several tables with different counting** (decided: cut lists Flat, weldment BOM Structured, ERP import Occurrence). `Name`, `Columns`, `Mode` and `Key` on a file output are rejected.
+- **A table lists every file its task selects, wherever the table sits** (decided: no `Covers` field, no `Delivered` column). The CSV/XLSX is a clean manufacturing/MRP document with no delivery status. **What was actually delivered is the export log's job** (`export-log.csv/.json`, with one line per table too, 4.7).
+- **Rows (`TaskTable.Rows(snapshot, task, output, config)`):** `Rollup.Apply` with Mode/Key from the output (else the config), `IncludeAssemblies` and `IncludeRoot` on, `Inseparable = IncludeChildren`, the task's own `ContentCenter` and `BomStructures`, then kept only for rows whose file the task selected (`ExportPlanner.SelectedFiles`). So an assembly the task selects appears even if the config's `Rollup.IncludeAssemblies` is false, and the root appears only if the task selects it (e.g. `Scope: TopLevelOnly`). With `Key: PartNumber`, two selected files with the same Part Number share one row labelled with the first file's name. In `Structured` mode a file used under several parents gets a row per parent.
+- `TaskTable.Columns(output, config)` gives the columns. `ExportPlanner.PlanTables` gives the paths and detects conflicts. The CLI (`Actions.WriteTables` in `Program.cs`) writes them after the file jobs run.
+- **Writers:** `CsvTableWriter.Write(rows, columns)` (columns File Name, Qty, property columns, Status; UTF-8 with BOM is applied by the caller). `XlsxTableWriter.Write(path, rows, columns, exclusions?)` (Core, ClosedXML): sheet "BOM" with bold header, frozen first row, autofilter, auto-sized columns; cell type from the snapshot's `DataType` (Number → numeric cell, Date → date cell `yyyy-mm-dd`, Text/Boolean → text, so `"001"` keeps its zeros; Qty is numeric); unresolved rows light yellow with Status "Unresolved"; optional second sheet "Left out" with the exclusion records when given and non-empty.
+- **Zip: not built (decided).** When built it is one task-level option that zips the task's root folder (the tree already contains the table and the files). Belongs after the config editor discussion (open question 19). Do not hardcode zip logic in Core (`ZipFile` is not in `netstandard2.0`).
+- Known limits: `Actions.WriteTables` and `PrintTaskFailures` live in `Program.cs` and make `Actions` large; move table writing into a small class (Core planner + a CLI-side or Inventor-free runner) when the next output type (SQLite) arrives.
+
+### 4.14 Property filters, numeric operators (implemented v0.6; units unverified)
+
+Operators: text (`Equals`, `NotEquals`, `Contains`, `IsEmpty`, `IsNotEmpty`, case-insensitive) and numeric (`LessThan`, `LessThanOrEqual`, `GreaterThan`, `GreaterThanOrEqual`; appended to the enum). Numeric operators read both the stored value and the filter `Value` as numbers with the **invariant culture** (decimal point `.` in the config, whatever the Windows regional setting), regardless of the property's `DataType` (a Text property holding `"12.5"` works). A missing or non-numeric stored value **fails the filter** and the exclusion report says `<Property> is "<value>", which is not a number`. A numeric operator with a non-numeric `Value` is rejected on load; a filter with no `Property` is rejected on load. Only ANDing exists inside a task (no OR, open question 18).
+
+**Unverified: units.** The comparison is on the stored number with **no unit conversion**. Believed from memory (unverified): Inventor returns lengths in centimetres and mass in kilograms through the API, whatever the display unit, and mass is mostly `0` in the fixtures. So a filter like `mass < 200 lb` is **not supported**; mass is on hold by owner decision. Test with a Length (or volume, or a custom number property) first, after the owner has checked the stored value against one known part. A unit option on the filter (e.g. `"Unit": "lb"`) is a possible later addition, only after the units are verified.
 
 ---
 
@@ -275,10 +335,10 @@ The summary line `Content Center parts: N (flag not recorded on M parts)` counts
 OpenInventorExport/               (repo root; .slnx here)
 ├─ CLAUDE.md, README.md, LICENSE, .gitignore, .gitattributes
 ├─ Directory.Build.props          # InventorPublicAssemblies path (default: C:\Program Files\Autodesk\Inventor 2027\Bin\Public Assemblies)
-├─ config/                        # export.config.json (example, loaded by tests), dwg-one-sheet.ini, dxf-one-sheet.ini; CLI looks here
+├─ config/                        # export.config.json (shipped example, loaded by tests: keep valid), steponly-export.config.json, test-export.config.json (experiments), dwg-one-sheet.ini, dxf-one-sheet.ini; CLI looks here
 ├─ samples/snapshots/             # sanitized snapshot fixtures (*snapshot.json, schema v2): robot, engine, rotary; .gitignore has !samples/snapshots/*.json
 ├─ src/
-│  ├─ OpenInventorExport.Core/        netstandard2.0, Nullable on. NO implicit usings (add explicit usings)
+│  ├─ OpenInventorExport.Core/        netstandard2.0, Nullable on. NO implicit usings (add explicit usings). References System.Text.Json and ClosedXML
 │  │   Model.cs                   # PropertyDataType, SkipReason, PropertySetNames, PropertyValue, ComponentRecord (incl. IsContentCenter, IsUnresolved), SkippedRecord, Snapshot (incl. ProjectFile)
 │  │   SnapshotJson.cs            # indented JSON, enums as strings, schema-version check
 │  │   SnapshotSummary.cs         # counts by DocumentType/BomStructure/Virtual, unique files, project, Content Center count, warns on unrecognized document types
@@ -289,12 +349,14 @@ OpenInventorExport/               (repo root; .slnx here)
 │  │   ContentCenterFilter.cs     # ContentCenterMode, Passes/Describe/NotRecorded
 │  │   BomTotals.cs               # PartsOnlyRows/StructuredRows and totals (match Inventor's views)
 │  │   CsvTableWriter.cs          # CSV with escaping; columns are (Set, Name) pairs; last column Status
+│  │   XlsxTableWriter.cs         # XLSX via ClosedXML: BOM sheet (+ optional "Left out" sheet), typed cells
+│  │   TaskTable.cs               # rows and columns of a task's Csv/Xlsx output (4.13)
 │  │   ExportResult.cs            # PdfSheetMode, ExportStatus, ExportResult.ForJob / ForUnreadable
 │  │   ExportResultLog.cs         # results -> CSV / JSON / summary
 │  │   PathUtil.cs                # StripMemberSuffix, DrawingBaseName
-│  │   ExportTask.cs              # formats, scope, filters, selection (BomStructures, ContentCenter), OutputSpec, ExportTask
-│  │   ExportTaskValidator.cs
-│  │   ExportPlanner.cs           # JobState, ExportJob, Plan(), PlanAll(), selection per unique file
+│  │   ExportTask.cs              # ExportFormat (Step, Pdf, Dwg, Dxf, Dwf, Csv, Xlsx), scope, filters (incl. numeric operators), selection (BomStructures, ContentCenter), OutputSpec (Folder, Name, Columns, Mode, Key), ExportTask
+│  │   ExportTaskValidator.cs     # combos, folders, tokens, table settings, duplicates, filters, document types, BOM rules
+│  │   ExportPlanner.cs           # JobState, ExportJob, TableJob, Plan(), PlanAll(), PlanTables(), selection per unique file, IsTable, IsNumeric, SelectedFiles
 │  │   PropertySchema.cs          # SchemaProperty, PropertySchema, PropertyIssue, PropertySchemaValidator
 │  │   DocumentTypes.cs           # fixed list: Part, SheetMetal, Assembly, Virtual, Unknown; IsKnown()
 │  │   ExportTaskJson.cs          # strict JSON options (shared), ExportTask <-> JSON, validates
@@ -309,21 +371,22 @@ OpenInventorExport/               (repo root; .slnx here)
 │  │   DrawingBatch.cs            # legacy per-model drawing loop; now only helpers (References, FindOpenDocument) are used
 │  │   Translators.cs             # lookup + activate translator add-in by ID
 │  │   StepExporter.cs, PdfExporter.cs, CadExporter.cs   # translator-based savers
-│  │   JobRunner.cs               # executes ExportJobs, one ExportResult each
+│  │   JobRunner.cs               # executes ExportJobs (files only), one ExportResult each
 │  └─ OpenInventorExport.Cli/         net8.0-windows exe
-│      Program.cs                 # command-based CLI (below): Actions, Interactive, Cli
+│      Program.cs                 # command-based CLI (below): Actions (incl. SelectTasks, WriteTables, PrintTaskFailures), Interactive (incl. AskTask), Cli
 ├─ tests/OpenInventorExport.Core.Tests/   xUnit
 │     SnapshotSerializationTests, RollupTests, ExportPlannerTests, ExportResultTests,
 │     PathUtilTests, PropertySchemaTests, FixtureTotalsTests,
 │     ExportTaskJsonTests, ExportConfigTests, ExportConfigFileTests, ConfigPropertiesTests, DocumentTypesTests,
 │     ConfigRollupTests, ContentCenterFlagTests, UnresolvedTests,
-│     ExampleConfigTests, ProjectCheckTests, BomStructureTests, ContentCenterAndPolicyTests
+│     ExampleConfigTests, ProjectCheckTests, BomStructureTests, ContentCenterAndPolicyTests,
+│     XlsxTableWriterTests, TableOutputTests, NumericFilterTests
 └─ docs/, schemas/                # planned
 ```
 
 ### CLI usage
 
-**Run with no arguments: interactive menu** (the normal way; nothing to configure in launch settings). The header shows the output folder, loaded snapshot and loaded config. At startup it loads `config/export.config.json` if found. Menu: 1 collect from Inventor, 2 load a saved snapshot, 3 summary, 4 plan (dry run; warns about unreadable components, project mismatch, Content Center flags, prints what rules left out), 5 run exports (asks for confirmation first; Block refuses while components are unresolved), 6 check properties, 7 write BOM CSV, 8 totals for saved snapshots (pick from `samples/snapshots` or paste a path), 9 change output folder, 10 load (or reload) a config file. The snapshot stays loaded between actions; collect again after changing the assembly. Options that need a config load it first (fail early), then the snapshot.
+**Run with no arguments: interactive menu** (the normal way; nothing to configure in launch settings). The header shows the output folder, loaded snapshot and loaded config. At startup it loads `config/export.config.json` if found. Menu: 1 collect from Inventor, 2 load a saved snapshot, 3 summary, 4 plan (dry run; warns about unreadable components, project mismatch, Content Center flags, prints what rules left out, and lists planned files and tables), 5 run exports (asks for confirmation first; Block refuses while components are unresolved), 6 check properties, 7 write BOM CSV, 8 totals for saved snapshots (pick from `samples/snapshots` or paste a path), 9 change output folder, 10 load (or reload) a config file. Items 4 and 5 ask for a task name when the config has two or more tasks (Enter = all). The snapshot stays loaded between actions; collect again after changing the assembly. Options that need a config load it first (fail early), then the snapshot.
 
 **One-shot commands (for scripts)**: the first argument is the command.
 
@@ -331,14 +394,15 @@ OpenInventorExport/               (repo root; .slnx here)
 totals <snapshot.json>...   Rollup totals from saved snapshots. No Inventor needed.
 snapshot [outDir]           Collect from running Inventor, save snapshot.json, print summary.
 plan     [outDir]           Collect, save snapshot, print the export plan. Exports nothing.
-export   [outDir]           Collect, save snapshot, run the plan, write export-log.csv/.json and export-excluded.csv.
+export   [outDir]           Collect, save snapshot, run the plan, write tables, export-log.csv/.json and export-excluded.csv.
 props    [outDir]           Check properties against the config's Properties. Report only.
 bom      [outDir]           Write bom-<mode>.csv (e.g. bom-flat.csv) and bom-<mode>-excluded.csv; rollup and columns from the config.
 --from <snapshot.json>      (plan/export/props/bom) use a saved snapshot instead of collecting.
 --config <file.json>        (plan/export/props/bom) config file; default config/export.config.json.
+--only <task>               (plan/export) run just that task. A wrong name fails before Inventor is touched.
 ```
 
-`outDir` defaults to `./output` (git-ignored). Commands that collect need Inventor running with the assembly as the **active document and the right project active**. Exit codes: 0 done, 1 error, 2 export ran under `Unresolved: Warn` with unreadable components. `Program.cs` has three parts: `Actions` (the work), `Interactive` (menu), `Cli` (one-shot arguments). The CLI project still needs the Inventor interop DLL to build, even for `totals`.
+`outDir` defaults to `./output` (git-ignored). Commands that collect need Inventor running with the assembly as the **active document and the right project active**. Exit codes: 0 done, 1 error, 2 export ran under `Unresolved: Warn` with unreadable components. `Program.cs` has three parts: `Actions` (the work), `Interactive` (menu), `Cli` (one-shot arguments). The CLI project still needs the Inventor interop DLL to build, even for `totals`. The `bom` command has a **temporary** line that also writes `bom-<mode>.xlsx` next to the CSV (placeholder; BOM table formats are not yet configurable).
 
 ---
 
@@ -375,12 +439,12 @@ Document types the traverser emits are the list in `DocumentTypes` (Weldment is 
 - Active project: `app.DesignProjectManager.ActiveDesignProject.FullFileName` (verified; used by `DrawingLocator` and the snapshot).
 - `BOMStructure` values: Phantom, Reference, Inseparable, Purchased, Normal: see 4.4 and 4.11.
 - Inventor's **Structured BOM lists each unique sub-assembly's contents once per distinct parent chain**; **Parts Only** multiplies through levels. Don't compare raw occurrence counts to either.
-- Property gotchas: Windows "empty date" is 1601-01-01; values are `object`; read per property set.
+- Property gotchas: Windows "empty date" is 1601-01-01; values are `object`; read per property set. **Unit of numeric properties (length, mass) as returned by the API is unverified** (believed centimetres / kilograms; see 4.14).
 - `FullDocumentName` **can carry a `<member>` or model-state suffix** (e.g. `Motor.ipt<No Cover>`). Strip it (`PathUtil.StripMemberSuffix`) before comparing with `Document.FullFileName` or passing to translators. STEP therefore exports the file's primary state, not that variant. Inventor's BOM compare must key virtual components separately (no `Document`).
 - **Unresolved files:** the descriptor name reads, `occ.Definition.Document` throws `E_FAIL` (4.9). The bolted connections (Design Accelerator assemblies) in the rotary assembly are examples. An unresolved assembly hides its children. Inventor cannot save a BOM for an assembly with unresolved files.
 - **Content Center:** `PartComponentDefinition.IsContentMember` works (verified).
 - **Active project and drawings (verified):** drawing lookup goes through the active project's search paths, so the wrong project active gives `NoDrawing` for every drawing job; model-only (STEP) exports are unaffected (4.12).
-- **Not yet verified:** children of Phantom / Reference / Purchased assemblies in Inventor's BOM views (4.11); iPart / iAssembly members; quantity overrides in Inventor's BOM; multiple model states/LOD; patterns; performance on large assemblies; COM object release; virtual component iProperties; mass (mostly `0`, treat as unreliable); picture-valued properties (`Part Icon`); a real `Unresolved: Warn` run.
+- **Not yet verified:** children of Phantom / Reference / Purchased assemblies in Inventor's BOM views (4.11); iPart / iAssembly members; quantity overrides in Inventor's BOM; multiple model states/LOD; patterns; performance on large assemblies; COM object release; virtual component iProperties; mass and length units (4.14); picture-valued properties (`Part Icon`); a real `Unresolved: Warn` run.
 - **Drawings are not discoverable from the model.** Current strategy: same base name, any project path (`ResolveFile`). A configurable association strategy is still open.
 - **Translators:** IDs confirmed for PDF `{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}`, DWG `{C24E3AC2-122E-11D5-8E91-0010B541CD80}`, DXF `{C24E3AC4-122E-11D5-8E91-0010B541CD80}`, DWF `{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}`, STEP `{90AF7F40-0C01-11D5-8E83-0010B541CD80}`. Use a fresh `NameValueMap` and set only needed options.
   - STEP: `ApplicationProtocolType=3` (AP214) after `HasSaveCopyAsOptions`.
@@ -407,8 +471,10 @@ Document types the traverser emits are the list in `DocumentTypes` (Weldment is 
 | 2.95 | Content Center flag; unresolved components + export gate | **Done** (v0.4.1, v0.4.2) |
 | 3 | Config file v1 (tasks, schema, rollup, BOM columns from JSON, wired into the CLI) | **Done** (v0.3.10, v0.4, v0.5) |
 | 3.5 | Active project recorded and checked | **Done** (v0.5) |
-| 5 | Rules engine | **Core done** (v0.5.1): BOM structure rules, exclusion report, Content Center, unresolved policy. Children defaults wait on Inventor test (4.11). Occurrence-level rules not built |
-| 6 | XLSX, SQLite, multiple exports per run | Next (after Inventor checks) |
+| 5 | Rules engine | **Core done** (v0.5.1): BOM structure rules, exclusion report, Content Center, unresolved policy. Numeric filters done (v0.6). Children defaults wait on Inventor test (4.11). Occurrence-level rules and `Remainder` not built |
+| 6a | XLSX writer; table outputs (Csv/Xlsx) with folders, names, columns, per-output rollup; `--only` | **Done** (v0.6) |
+| 6b | SQLite output | Next (after Inventor checks) |
+| 6c | Zip option (zips a task's root folder) | Deferred (open question 19) |
 | 8 | Config Editor UI (WPF) | Later |
 | 9 | Polish, add-in launcher, `net48` build/testing on 2023/2024, installer, release | Later |
 
@@ -424,11 +490,11 @@ Resist building UI early; a good config *format* first.
 - Errors on a single component are caught, logged, and recorded in `Skipped`; they never abort the collection. A component that cannot be read blocks the *export* instead, unless the config says `Unresolved: Warn` (4.9).
 - Core: explicit `using` statements (netstandard2.0, no implicit usings). Inventor/Cli: `ImplicitUsings` enabled.
 - Every Core feature gets a unit test (Arrange/Act/Assert). Inventor-dependent code gets a manual checklist in `docs/`.
-- Config schema changes require `schemaVersion` bump and migration note. Additive snapshot fields get an honest default for old data instead of a version bump (4.3). New enum values go at the end of the enum.
+- Config schema changes require `schemaVersion` bump and migration note. Additive snapshot fields get an honest default for old data instead of a version bump (4.3). New enum values go at the end of the enum. Optional config settings that mean "inherit" are nullable (`RollupMode?`, `RollupKey?`) so "not set" differs from a real value.
 - Config and other hand-edited JSON are loaded strictly (unknown names rejected), with every problem reported at once.
 - Anything a rule leaves out must be reportable (exclusion report). Defaults reproduce Inventor's behavior unless the owner decides otherwise.
 - Logging: planned `Microsoft.Extensions.Logging` to a file next to outputs.
-- `Program.cs` stays thin: parse arguments, call Core/Inventor, print.
+- `Program.cs` stays thin: parse arguments, call Core/Inventor, print. (It has grown: see the limit noted in 4.13.)
 
 ---
 
@@ -436,7 +502,7 @@ Resist building UI early; a good config *format* first.
 
 - `main` is always buildable. One short-lived branch per task (`feature/...`, `fix/...`).
 - Commit often, imperative messages. **Push after committing**, and check the GitHub page.
-- Merge via Pull Request even when solo. Tag milestones **in order** (`v0.5.1` done; the owner picks the next number).
+- Merge via Pull Request even when solo. Tag milestones **in order** (`v0.6` is the latest; the owner picks the next number).
 - `.gitignore` includes `bin/`, `obj/`, `output/`, `snapshot*.json`, with `!samples/snapshots/*.json` for intentional fixtures.
 - Never commit: Inventor DLLs, third-party or employer models, files with usernames or real names.
 
@@ -447,19 +513,25 @@ Resist building UI early; a good config *format* first.
 1. Drawing association strategy for file exports (same folder/same name? naming rule?). Owner to describe typical workflow. Partly addressed: the active project is now recorded and checked (4.12), but association is still "same base name via the project paths".
 2. ~~Excluded phantom/reference items silently dropped~~ **Resolved:** exclusion report (4.11); per-structure include/children rules are configurable per task and for the BOM.
 3. ~~Write-back~~ **Resolved: read-only, never write to Inventor.**
-4. File-export destination types: local folder, network share, zip?
+4. File-export destination types: local folder, network share, zip? (Zip: see 19.)
 5. Single user or shared team config location? Partly answered: absolute paths in a config are allowed (so a shared team config can point at a network share); the config location itself is still open.
 6. ~~Rollup key default~~ **Resolved: Part Number default (empty falls back to file path), `FilePath` configurable** (see 4.4).
 7. Add-in launcher timing, and who will test `net48` on 2023/2024.
 8. ~~DWG/DXF multi-sheet~~ **Resolved:** `ALL SHEETS=Yes|No` in the ini, per format, only via `Export_Acad_IniFile`; runner activates sheet 1. Still open: per-export ini setting in config (partly done: `IniFile` is per output in the task).
-9. Output collisions: reported as `Conflict` (within a task and across tasks via `PlanAll`). Still open: a rule to disambiguate on request (suffix).
+9. Output collisions: reported as `Conflict` (within a task and across tasks via `PlanAll` / `PlanTables`). Different `Folder`s are different paths, so the same file in two folders is fine. Still open: a rule to disambiguate on request (suffix).
 10. ~~Task selection by BOM structure / Content Center~~ **Resolved:** both are in `Selection` (4.10, 4.11). **Still open:** occurrence-level rules (e.g. only parts under a given sub-assembly); build only when a real need appears (additive config field).
 11. ~~How should unresolved components be reported?~~ **Mostly resolved** (4.9): listed in the BOM flagged, recorded as `FileMissing`, policy Block/Warn. Still unverified: totals against Inventor with unresolved items (no Inventor BOM exists to compare).
 12. ~~Summary Information / Document Summary Information property sets~~ **Resolved: not read** (see 4.8).
 13. ~~Unresolved-component policy~~ **Resolved:** `Unresolved: Block | Warn`, default Block, no Skip option (4.9). Exit code 2 for an incomplete Warn run.
 14. **Children defaults for Phantom, Reference and Purchased assemblies** (4.11): currently kept; needs the Inventor children test, then the owner decides.
-15. Should `bom` also return exit code 2 when components were unreadable? Currently 0 (it never blocks). Ask only if a script needs it.
+15. Should `bom` also return exit code 2 when components were unreadable? Currently 0 (it never blocks). Ask only if a script needs it. Same question for failed export jobs: currently they do not change the exit code.
 16. Should assemblies hidden by `IncludeAssemblies: false` be reported in the exclusion report? Currently not (view choice, not a lost part).
+17. **`Remainder` selection** (`"Selection": { "Remainder": true }` = every file no other task in the config selects). Recommended design: judged against **all** tasks in the config, not just the ones run with `--only`, so the result does not depend on how the tool is run; ordinary overlap between tasks stays allowed. Owner liked the idea but wants the overall export model settled first. Not built. Until then, use NotEquals filters for the other vendors.
+18. **OR inside a task** (e.g. Vendor ABC or DEF): today needs two tasks. A possible `In` operator with a list of values; add only if the owner asks.
+19. **Zip option** for a task's folder tree. Deferred to later (config editor era). Design when built: one task-level option that zips the task's root folder; zip code stays outside Core (`ZipFile` is not in `netstandard2.0`).
+20. **Units for numeric filters** (4.14): verify what Length and Mass look like in the snapshot; then decide whether a filter gets a `Unit`. Mass is on hold.
+21. Per-task log file inside the task folder? Currently the one `export-log.csv/.json` in the output root has everything (with a task name on each line); a vendor probably should not receive the failure list. Add only if asked.
+22. BOM table formats for the `bom` command (XLSX/CSV choice from config) are not configurable; the XLSX line in `Actions.Bom` is a temporary placeholder.
 
 ---
 
