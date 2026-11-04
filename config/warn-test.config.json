@@ -1,0 +1,18 @@
+{
+  "SchemaVersion": 1,
+  "Unresolved": "warn",
+  "Tasks": [
+    {
+      "Name": "Steps",
+      "Selection": { "DocumentTypes": [ "SheetMetal" ] },
+      "Outputs": [
+        {
+          "Format": "Step",
+          "Source": "Model"
+        },
+        { "Format": "Csv" }
+      ]
+    }
+  ],
+  "BomColumns": [ { "Name": "Part Number" } ]
+}
