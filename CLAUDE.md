@@ -40,8 +40,6 @@
 
 **Next up (suggested order):**
 1. **Inventor-dependent, while the trial lasts (owner does these):**
-   - Confirm the fixture checks listed above (`ProjectFile` present, no personal data, `Part Icon`).
-   - Optional unit checks: a **built-in number in a millimetre document** (does Mass still come out in grams, Flat Pattern Width in cm?); **Area and Volume** (Area was seen as text like `"5913.365 mm^2"`, not supported); whether `Mass` sits in the Design Tracking set (assumed in `Units.cs`, the pasted snippet did not show the set).
    - **iPart / iAssembly members: parked by owner decision** until the rest of the tool is done. If the trial is nearly over and time is left, do it then (the `<member>` handling in `PathUtil` is only tested with made-up names).
    - Model states beyond the primary state: not tested; the traverser records only the active model state's name.
 2. **`Remainder` selection** ("every file no other task selects"), design in open question 17. Pure Core.
