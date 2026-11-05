@@ -43,7 +43,7 @@ public static class XlsxTableWriter
         int r = 2;
         foreach (var row in rows)
         {
-            ws.Cell(r, 1).Value = row.Component.FileName;
+            ws.Cell(r, 1).Value = PathUtil.StripMemberSuffix(row.Component.FileName);
             ws.Cell(r, 2).Value = (double)row.Quantity;
 
             for (int i = 0; i < propertyColumns.Count; i++)

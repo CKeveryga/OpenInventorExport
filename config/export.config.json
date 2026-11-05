@@ -31,8 +31,9 @@
 	],
 
 	"Rollup": {
-		"Mode": "Flat",
-		"IncludeAssemblies": false
+		"Mode": "Structured",
+		"IncludeAssemblies": true,
+		"Key": "FilePath"
 	},
 
 	"BomColumns": [

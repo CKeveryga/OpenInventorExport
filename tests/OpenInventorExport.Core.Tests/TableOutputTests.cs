@@ -261,4 +261,15 @@ public class TableOutputTests
         Assert.Equal(RollupMode.Occurrence, c.Tasks[0].Outputs[0].Mode);
         Assert.Equal(RollupKey.FilePath, c.Tasks[0].Outputs[0].Key);
     }
+
+    [Fact]
+    public void Table_ShowsTheFileNameWithoutTheModelStateSuffix()
+    {
+        var rec = new ComponentRecord { FileName = "Piston.iam<Model State1>" };
+
+        var csv = CsvTableWriter.Write(new[] { new ExportRow(rec, 2, null) }, new (string Set, string Name)[0]);
+
+        Assert.Contains("Piston.iam,2", csv);
+        Assert.DoesNotContain("<", csv);
+    }
 }

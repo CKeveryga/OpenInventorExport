@@ -19,7 +19,7 @@ public static class CsvTableWriter
         {
             var cells = new List<string>
             {
-                row.Component.FileName,
+                PathUtil.StripMemberSuffix(row.Component.FileName),
                 row.Quantity.ToString()
             };
             foreach (var col in propertyColumns)
