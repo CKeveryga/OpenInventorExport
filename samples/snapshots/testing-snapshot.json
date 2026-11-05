@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedUtc": "2026-11-03T11:49:36.5521733Z",
+  "CreatedUtc": "2026-11-03T12:10:14.8860858Z",
   "InventorVersion": "2027.1 (Build 311270010, 270A)",
   "SourceFile": "C:\\InvModels\\Testing\\Top.iam",
   "ProjectFile": "C:\\InvModels\\Testing\\Testing.ipj",
@@ -64,7 +64,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{C82AB2C0-D897-489F-9891-54BB533D94A6}"
+            "Value": "{6E849DDC-9E61-4A92-9073-2F0EB173C3F2}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -176,23 +176,23 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "156.52312844286183"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "538.0798188375013"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "75.70212879486184"
           },
           "Density": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "2.06761858529777"
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "1"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -304,7 +304,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{C8356D01-3BE8-4453-96E3-99A73372D70A}"
+            "Value": "{062B78AA-9B13-44B9-86CA-3E3E281AC48F}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -416,23 +416,23 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "110.73258291305643"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "214.23998128188842"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "29.91158326505642"
           },
           "Density": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "3.7019967125049327"
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "1"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -540,11 +540,11 @@
           },
           "Material": {
             "DataType": "Text",
-            "Value": "Generic"
+            "Value": "Steel, Mild"
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{C712CEEA-99B3-474A-B9E2-CEABB830260A}"
+            "Value": "{ED9B514C-BEEB-4E2C-932D-E80642ADA7AE}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -656,23 +656,23 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "92.61968572800001"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "85.16112000000001"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "11.798686080000001"
           },
           "Density": {
             "DataType": "Number",
-            "Value": "1"
+            "Value": "7.85"
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "17"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -708,11 +708,11 @@
           },
           "Material Identifier": {
             "DataType": "Text",
-            "Value": "R:\\Application\\App\\Materials\\InventorMaterialLibrary\\InventorMaterialLibrary.adsklib#1:Generic\n#MaterialInv_072"
+            "Value": "C:\\Users\\Public\\Documents\\Autodesk\\Inventor 2027\\Design Data\\Materials\\InventorMaterialLibrary.adsklib#1:Steel, Mild\n#MaterialInv_029"
           },
           "Appearance": {
             "DataType": "Text",
-            "Value": "Default"
+            "Value": "Semi-Polished"
           },
           "Flat Pattern Defer Update": {
             "DataType": "Boolean",
@@ -723,7 +723,20 @@
             "Value": "0"
           }
         },
-        "Inventor User Defined Properties": {}
+        "Inventor User Defined Properties": {
+          "Plain": {
+            "DataType": "Number",
+            "Value": "2"
+          },
+          "Height": {
+            "DataType": "Text",
+            "Value": "2.000 in"
+          },
+          "Width": {
+            "DataType": "Text",
+            "Value": "3.000 in"
+          }
+        }
       }
     },
     {
@@ -784,7 +797,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{3350101B-8F66-4991-8CB1-8FD2EB14099F}"
+            "Value": "{76E667C7-8CEC-4476-AD90-10FDCE7DAEA1}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -896,15 +909,15 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "18.11289718505642"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "129.0788612818884"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "18.11289718505642"
           },
           "Density": {
             "DataType": "Number",
@@ -912,7 +925,7 @@
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "17"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -1024,7 +1037,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{A14BBF55-4BEF-495D-A035-115AC5294F7F}"
+            "Value": "{F95324BA-EE6F-4052-9847-086F25403AAB}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -1136,23 +1149,23 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "45.790545529805414"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "323.83983755561286"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "45.790545529805414"
           },
           "Density": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "1"
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "1"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -1264,7 +1277,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{3CB52F07-04A7-4401-8EB8-EB874068EA15}"
+            "Value": "{4871FA4C-0739-4127-BEBD-B3AF15A4381E}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -1376,15 +1389,15 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "21.270002737584612"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "149.79477698089238"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "21.270002737584612"
           },
           "Density": {
             "DataType": "Number",
@@ -1392,7 +1405,7 @@
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "17"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",
@@ -1504,7 +1517,7 @@
           },
           "Part Property Revision Id": {
             "DataType": "Text",
-            "Value": "{C377DC40-5DF9-477E-BDE6-4D4A95F0C805}"
+            "Value": "{893E51D6-6568-4203-BE45-D72564A0BD2F}"
           },
           "Catalog Web Link": {
             "DataType": "Text",
@@ -1616,15 +1629,15 @@
           },
           "Mass": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "24.5205427922208"
           },
           "SurfaceArea": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "174.04506057472048"
           },
           "Volume": {
             "DataType": "Number",
-            "Value": "0"
+            "Value": "24.5205427922208"
           },
           "Density": {
             "DataType": "Number",
@@ -1632,7 +1645,7 @@
           },
           "Valid MassProps": {
             "DataType": "Number",
-            "Value": "17"
+            "Value": "31"
           },
           "Flat Pattern Width": {
             "DataType": "Number",

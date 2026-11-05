@@ -233,10 +233,15 @@ public static class ExportPlanner
             case FilterOperator.Contains: return value.IndexOf(wanted, StringComparison.OrdinalIgnoreCase) >= 0;
             case FilterOperator.IsEmpty: return value.Length == 0;
             case FilterOperator.IsNotEmpty: return value.Length > 0;
-            case FilterOperator.LessThan: return TryNumbers(value, wanted, out var a1, out var b1) && a1 < b1;
-            case FilterOperator.LessThanOrEqual: return TryNumbers(value, wanted, out var a2, out var b2) && a2 <= b2;
-            case FilterOperator.GreaterThan: return TryNumbers(value, wanted, out var a3, out var b3) && a3 > b3;
-            case FilterOperator.GreaterThanOrEqual: return TryNumbers(value, wanted, out var a4, out var b4) && a4 >= b4;
+            //case FilterOperator.LessThan: return TryNumbers(value, wanted, out var a1, out var b1) && a1 < b1;
+            //case FilterOperator.LessThanOrEqual: return TryNumbers(value, wanted, out var a2, out var b2) && a2 <= b2;
+            //case FilterOperator.GreaterThan: return TryNumbers(value, wanted, out var a3, out var b3) && a3 > b3;
+            //case FilterOperator.GreaterThanOrEqual: return TryNumbers(value, wanted, out var a4, out var b4) && a4 >= b4;
+            case FilterOperator.LessThan:
+            case FilterOperator.LessThanOrEqual:
+            case FilterOperator.GreaterThan:
+            case FilterOperator.GreaterThanOrEqual:
+                return NumberTest(f, value, wanted);
             default: return false;
         }
     }
@@ -245,19 +250,25 @@ public static class ExportPlanner
         op == FilterOperator.LessThan || op == FilterOperator.LessThanOrEqual ||
         op == FilterOperator.GreaterThan || op == FilterOperator.GreaterThanOrEqual;
 
-    /// <summary>Reads both sides as numbers (invariant culture). A missing or non-numeric value fails the filter.</summary>
-    private static bool TryNumbers(string value, string wanted, out double a, out double b)
+    private static bool NumberTest(PropertyFilter f, string value, string wanted)
     {
-        b = 0;
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out a)
-            && double.TryParse(wanted, NumberStyles.Float, CultureInfo.InvariantCulture, out b);
+        if (!Units.TryCompare(f.Set, f.Property, value, wanted, out double a, out double b, out _))
+            return false;
+        switch (f.Operator)
+        {
+            case FilterOperator.LessThan: return a < b;
+            case FilterOperator.LessThanOrEqual: return a <= b;
+            case FilterOperator.GreaterThan: return a > b;
+            case FilterOperator.GreaterThanOrEqual: return a >= b;
+            default: return false;
+        }
     }
 
     private static string NotMet(ComponentRecord c, PropertyFilter f)
     {
         string value = c.FindProperty(f.Set, f.Property)?.Value ?? "";
-        if (IsNumeric(f.Operator) && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
-            return $"{f.Property} is \"{value}\", which is not a number";
+        if (IsNumeric(f.Operator) && !Units.TryCompare(f.Set, f.Property, value, f.Value ?? "", out _, out _, out var problem))
+            return $"{f.Property} {problem}";
         return $"{f.Property} {f.Operator} \"{f.Value}\" is not met";
     }
 

@@ -72,9 +72,13 @@ public static class ExportTaskValidator
         {
             if (string.IsNullOrWhiteSpace(f.Property))
                 problems.Add($"Task '{task.Name}': a filter has no Property.");
-            if (ExportPlanner.IsNumeric(f.Operator) &&
-                !double.TryParse(f.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
-                problems.Add($"Task '{task.Name}': filter on '{f.Property}' uses {f.Operator}, so Value must be a number.");
+            if (ExportPlanner.IsNumeric(f.Operator))
+            {
+                if (!Units.TryParse(f.Value ?? "", out _, out string unit))
+                    problems.Add($"Task '{task.Name}': filter on '{f.Property}' uses {f.Operator}, so Value must be a number, optionally with a unit ({Units.SupportedList}).");
+                else if (unit.Length > 0 && !Units.IsKnown(unit))
+                    problems.Add($"Task '{task.Name}': filter on '{f.Property}' has the unit '{unit}', which is not supported ({Units.SupportedList}).");
+            }
         }
 
         problems.AddRange(BomStructurePolicy.Validate(task.Selection.BomStructures, $"Task '{task.Name}'"));
