@@ -1,8 +1,9 @@
 {
   "SchemaVersion": 2,
-  "CreatedUtc": "2026-11-01T13:01:18.9229762Z",
+  "CreatedUtc": "2026-11-04T23:42:00.9788287Z",
   "InventorVersion": "2027.1 (Build 311270010, 270A)",
   "SourceFile": "C:\\InvModels\\RotaryEngine\\INVENTOR files\\INVENTOR-files\\MOTORGRUPPE.iam",
+  "ProjectFile": "C:\\InvModels\\RotaryEngine\\INVENTOR files\\INVENTOR-files\\STERNMOTO 7-Zylinder.ipj",
   "ModelState": "[Primary]",
   "Components": [
     {

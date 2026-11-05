@@ -1,0 +1,53 @@
+{
+	"SchemaVersion": 1,
+
+	"Unresolved": "Block", 
+
+	"Tasks": [
+		{
+			"Name": "Export",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part", "SheetMetal", "Assembly" ]
+			},
+			"Outputs": [
+				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
+				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
+				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
+				{ "Format": "Dwf", "Source": "Model" },
+				{ "Format": "Dwf", "Source": "Drawing", "Folder": "DWF-Drawings" },
+				{ "Format": "Step", "Source": "Model" },
+				{ "Format": "Xlsx", "Folder": "Tables", "Columns": 
+					[ 
+						{ "Name": "Part Number" }, 
+						{ "Name": "Material" }, 
+						{ "Name":"Flat Pattern Width" }, 
+						{ "Name":"Flat Pattern Length" }, 
+						{ "Name":"Mass" } 
+					] },
+				{ "Format": "Csv", "Folder": "Tables", "Name": "ERP_Import", "Mode": "Occurrence", "Key": "FilePath" }
+			]
+		}
+	],
+
+	"Properties": [
+		{
+			"Set": "Inventor User Defined Properties",
+			"Name": "Test",
+			"DataType": "Text",
+			"Required": true
+		}
+	],
+
+	"Rollup": {
+		"Mode": "Structured",
+		"IncludeAssemblies": true
+	},
+
+	"BomColumns": [
+		{ "Name": "Part Number" },
+		{ "Name": "Description" },
+		{ "Name": "Material" }
+	]
+}

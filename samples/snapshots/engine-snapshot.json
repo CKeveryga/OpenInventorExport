@@ -1,8 +1,9 @@
 {
   "SchemaVersion": 2,
-  "CreatedUtc": "2026-11-01T13:58:46.2076775Z",
+  "CreatedUtc": "2026-11-04T23:39:19.5693027Z",
   "InventorVersion": "2027.1 (Build 311270010, 270A)",
   "SourceFile": "C:\\InvModels\\Engine\\INVENTOR (ZIPPED)\\engine_type_01_2_liter_asm_inventor\\engine_type_01_2_liter_asm\\engine_type_01_2_liter_asm.iam",
+  "ProjectFile": "C:\\InvModels\\Engine\\Engine.ipj",
   "ModelState": "[Primary]",
   "Components": [
     {
@@ -83276,7 +83277,7 @@
           },
           "Last Updated With": {
             "DataType": "Text",
-            "Value": "2013 (Build 170138000, 138)"
+            "Value": "2027.1 (Build 311270010, 270A)"
           },
           "Sheet Metal Width": {
             "DataType": "Text",
@@ -246956,7 +246957,7 @@
           },
           "Last Updated With": {
             "DataType": "Text",
-            "Value": "2013 (Build 170138000, 138)"
+            "Value": "2027.1 (Build 311270010, 270A)"
           },
           "Sheet Metal Width": {
             "DataType": "Text",
