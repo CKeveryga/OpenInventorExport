@@ -34,7 +34,7 @@
 - **Verified in Inventor 2027 on 2026-11-04** (details in the sections named): BOM structure children for Phantom, Reference and Purchased (4.11); units of numeric properties (4.14); a real `Unresolved: Warn` and `Block` run (4.9); virtual component properties come through the virtual definition's property sets (7); model state suffix `<Model State1>` appears in `FileName` and `FullPath` of occurrences (7); timing (below).
 - **Timing (measured 2026-11-04, Inventor 2027):** collection runs at about **26–28 components per second**, linear (Engine 1067 components in 40.1 s; Robot 542 in 20.6 s and 19.3 s on a repeat, so there is no first-run caching effect). The collect time is printed after every Collect. A full export run on the robot (154 STEP, 167 DWF, 13 each of PDF, DWG, DXF) took **5 min 51 s**. Per format: Dwf 0.5 s average, Step 0.8 s, Pdf 1.3 s, Dxf 4.1 s, Dwg 4.8 s; the slowest job of each format was 10–34 s (probably the big assemblies) and about a third of the total sits in five jobs. **Opening a drawing costs only 0.1–0.2 s per job**, so "open each drawing once" is not worth building, and copying a result to a second folder only helps when the same file and format go to several folders (not measured as common). Neither optimization is built; the log columns `Seconds` and `OpenSeconds` and the `Timing:` lines after `export` make it easy to re-measure.
 
-**Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; about 23 days left as of 2026-11-04; owner to confirm). After it expires nothing needing Inventor can be run or tested. **Prioritize Inventor-dependent work first.** Pure-Core work (SQLite, config editor, further rules, `Remainder`) can be built after the trial from saved snapshots.
+**Deadline pressure:** the owner is on a **30-day Inventor 2027 trial that began about 2026-10-28** (expires roughly 2026-11-27; about 23 days left as of 2026-11-04; owner to confirm). After it expires nothing needing Inventor can be run or tested. **Prioritize Inventor-dependent work first.** Pure-Core work (config editor, further rules, `Remainder`) can be built after the trial from saved snapshots.
 
 **Done in the 2026-11-04 session (all passed):** BOM structure children test and the resulting defaults; unit-aware numeric filters; `Unresolved: Warn` and `Block` runs; unresolved-fixture tests; collect timer and per-job export timer; units check on millimetre and inch documents; virtual component properties; LOD experiment.
 
@@ -43,7 +43,7 @@
    - **iPart / iAssembly members: parked by owner decision** until the rest of the tool is done. If the trial is nearly over and time is left, do it then (the `<member>` handling in `PathUtil` is only tested with made-up names).
    - Model states beyond the primary state: not tested; the traverser records only the active model state's name.
 2. **`Remainder` selection** ("every file no other task selects"), design in open question 17. Pure Core.
-3. SQLite output. Zip (one task-level option that zips the task's root folder; deliberately not built, see open question 19).
+3. Zip (one task-level option that zips the task's root folder; deliberately not built, see open question 19).
 4. Config editor (WPF), add-in launcher, `net48` build and testing.
 5. Small cleanups: see open question 26 (stale "package" wording).
 
@@ -89,7 +89,7 @@ An open-source tool that exports Autodesk Inventor assemblies into **reliable, t
 
 ### In scope
 1. **Collect:** traverse an Inventor assembly and gather every occurrence with its properties (read-only).
-2. **Export tables:** CSV (done), XLSX (done), both as table outputs inside a task's folder tree; SQLite database and JSON later; extensible.
+2. **Export tables:** CSV (done), XLSX (done), both as table outputs inside a task's folder tree; JSON later; extensible.
 3. **Export files:** per component DWG, DXF, STEP, PDF, DWF via a task system (done; config-driven from the CLI), with a configurable folder layout per task.
 4. **Property schema validation:** define expected properties and report missing/empty/wrong-type values (done, read-only).
 5. **Export configuration:** how many exports, what each contains, rules, file naming, destinations (config v1 done).
@@ -341,7 +341,7 @@ A structure Core does not recognize is listed, not dropped. Children are judged 
 - **Writers:** `CsvTableWriter.Write(rows, columns)` (columns File Name, Qty, property columns, Status; UTF-8 with BOM is applied by the caller). `XlsxTableWriter.Write(path, rows, columns, exclusions?)` (Core, ClosedXML): sheet "BOM" with bold header, frozen first row, autofilter, auto-sized columns; cell type from the snapshot's `DataType` (Number → numeric cell, Date → date cell `yyyy-mm-dd`, Text/Boolean → text, so `"001"` keeps its zeros; Qty is numeric); unresolved rows light yellow with Status "Unresolved"; optional second sheet "Left out" with the exclusion records when given and non-empty.
 - **File Name column and model states:** the snapshot keeps Inventor's raw `FileName`, which can carry a suffix such as `Double Acting Piston.iam<Model State1>` (7). The owner prefers vendors to see the clean name. **The proposed change** (both writers call `PathUtil.StripMemberSuffix(row.Component.FileName)`, plus a test `Table_ShowsTheFileNameWithoutTheModelStateSuffix`) was given at the end of the 2026-11-04 chat. **Owner to confirm it was applied.** Known side effect: with `Key: FilePath`, two model states of one file would show the same name on two rows. The snapshot itself is never stripped.
 - **Zip: not built (decided).** When built it is one task-level option that zips the task's root folder (the tree already contains the table and the files). Belongs after the config editor discussion (open question 19). Do not hardcode zip logic in Core (`ZipFile` is not in `netstandard2.0`).
-- Known limits: `Actions.WriteTables` and `PrintTaskFailures` live in `Program.cs` and make `Actions` large; move table writing into a small class (Core planner + a CLI-side or Inventor-free runner) when the next output type (SQLite) arrives.
+- Known limits: `Actions.WriteTables` and `PrintTaskFailures` live in `Program.cs` and make `Actions` large; move table writing into a small class (Core planner + a CLI-side or Inventor-free runner).
 
 ### 4.14 Property filters, numeric operators and units (implemented; units VERIFIED against Inventor 2027 on 2026-11-04)
 
@@ -518,8 +518,7 @@ Document types the traverser emits are the list in `DocumentTypes` (Weldment is 
 | 3.5 | Active project recorded and checked | **Done** (v0.5) |
 | 5 | Rules engine | **Done in Core and verified against Inventor** for BOM structure rules, exclusion report, Content Center, unresolved policy (Block and Warn) and numeric filters with units. Occurrence-level rules and `Remainder` not built |
 | 6a | XLSX writer; table outputs (Csv/Xlsx) with folders, names, columns, per-output rollup; `--only` | **Done** (v0.6) |
-| 6b | SQLite output | Next (after Inventor checks) |
-| 6c | Zip option (zips a task's root folder) | Deferred (open question 19) |
+| 6b | Zip option (zips a task's root folder) | Deferred (open question 19) |
 | 8 | Config Editor UI (WPF) | Later |
 | 9 | Polish, add-in launcher, `net48` build/testing on 2023/2024, installer, release | Later |
 
