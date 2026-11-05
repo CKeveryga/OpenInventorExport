@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Text;
 using OpenInventorExport.Core;
 using OpenInventorExport.Core.Model;
@@ -18,12 +19,26 @@ internal static class Actions
     public static Snapshot Collect(string outRoot)
     {
         Directory.CreateDirectory(outRoot);
+
+        var clock = Stopwatch.StartNew();
         var snapshot = SnapshotCollector.CollectFromRunningInventor();
+        TimeSpan elapsed = clock.Elapsed;
+
         string path = Path.Combine(outRoot, "snapshot.json");
         File.WriteAllText(path, SnapshotJson.ToJson(snapshot));
         Console.WriteLine($"Snapshot saved: {path}");
+
+        int n = snapshot.Components.Count;
+        double perSecond = n / Math.Max(elapsed.TotalSeconds, 0.001);
+        Console.WriteLine($"Collected {n} component(s) in {FormatDuration(elapsed)} ({perSecond:F1} per second). " +
+                          $"Skipped records: {snapshot.Skipped.Count}.");
         return snapshot;
     }
+
+    private static string FormatDuration(TimeSpan t) =>
+        t.TotalMinutes >= 1 ? $"{(int)t.TotalMinutes} min {t.Seconds} s" : $"{t.TotalSeconds:F1} s";
+
+    private static string Timing(ExportResult r) => r.Seconds == null ? "" : $" ({r.Seconds.Value:F1} s)";
 
     public static Snapshot Load(string file) =>
         SnapshotJson.FromJson(File.ReadAllText(file))
@@ -121,8 +136,10 @@ internal static class Actions
 
         Directory.CreateDirectory(outRoot);
         WriteExclusions(exclusions, Path.Combine(outRoot, "export-excluded.csv"));
+        var runClock = Stopwatch.StartNew();
         var results = JobRunner.Run(jobs, r =>
-            Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}"));
+            Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}{Timing(r)}"));
+        TimeSpan runTime = runClock.Elapsed;
 
         foreach (var k in unreadable)
         {
@@ -138,6 +155,11 @@ internal static class Actions
         File.WriteAllText(Path.Combine(outRoot, "export-log.json"), ExportResultLog.ToJson(results));
 
         PrintTaskFailures(tasks, results);
+
+        foreach (var line in ExportResultLog.TimingSummary(results))
+            Console.WriteLine("Timing: " + line);
+        Console.WriteLine($"Timing: all file jobs took {FormatDuration(runTime)}.");
+
         foreach (var line in ExportResultLog.Summary(results))
             Console.WriteLine(line);
         Console.WriteLine($"Log written to: {outRoot}");

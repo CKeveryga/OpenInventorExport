@@ -1,4 +1,5 @@
-﻿using OpenInventorExport.Core;
+﻿using System.Diagnostics;
+using OpenInventorExport.Core;
 using Inv = global::Inventor;
 
 namespace OpenInventorExport.Inventor;
@@ -19,7 +20,11 @@ public static class JobRunner
             {
                 var result = ExportResult.ForJob(job);   // Conflict jobs stay Conflict, never exported
                 if (job.State == JobState.Planned)
+                {
+                    var clock = Stopwatch.StartNew();
                     RunOne(app, job, result);
+                    result.Seconds = clock.Elapsed.TotalSeconds;
+                }
                 results.Add(result);
                 onResult?.Invoke(result);
             }
@@ -65,8 +70,18 @@ public static class JobRunner
             }
 
             Inv.Document? existing = DrawingBatch.FindOpenDocument(app, sourcePath);
-            Inv.Document doc = existing ?? app.Documents.Open(sourcePath, false);
-            if (existing == null) opened = doc;
+            Inv.Document doc;
+            if (existing != null)
+            {
+                doc = existing;
+            }
+            else
+            {
+                var openClock = Stopwatch.StartNew();
+                doc = app.Documents.Open(sourcePath, false);
+                result.OpenSeconds = openClock.Elapsed.TotalSeconds;
+                opened = doc;
+            }
 
             string outDir = Path.GetDirectoryName(job.OutputPath)!;
             string baseName = Path.GetFileNameWithoutExtension(job.OutputPath);

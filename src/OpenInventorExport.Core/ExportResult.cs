@@ -17,6 +17,10 @@ public class ExportResult
     public string? OutputPath { get; set; }
     public ExportStatus Status { get; set; }
     public string? Detail { get; set; }
+    /// <summary>How long the job took, in seconds. Null = not timed (conflicts, tables, unreadable components).</summary>
+    public double? Seconds { get; set; }
+    /// <summary>Of Seconds, the time spent opening the source file. Null = not timed, or the file was already open.</summary>
+    public double? OpenSeconds { get; set; }
 
     /// <summary>
     /// Starts a result for a job. Conflict jobs become Conflict; every other job starts as

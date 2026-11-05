@@ -61,4 +61,21 @@ public class ExportResultTests
         var b = ExportResult.ForJob(Job(JobState.Conflict));
         Assert.Equal("Conflict: 2", ExportResultLog.Summary(new[] { a, b }).Single());
     }
+
+    [Fact]
+    public void TimingSummary_CountsOnlyExportedAndTimedJobs_PerFormat()
+    {
+        var a = ExportResult.ForJob(Job(JobState.Planned));
+        a.Status = ExportStatus.Exported; a.Seconds = 2.0; a.OpenSeconds = 0.5;
+        var b = ExportResult.ForJob(Job(JobState.Planned));
+        b.Status = ExportStatus.Exported; b.Seconds = 4.0; b.OpenSeconds = 1.5;
+        var quickFailure = ExportResult.ForJob(Job(JobState.Planned));
+        quickFailure.Seconds = 0.1;                           // Failed: not counted
+        var untimed = ExportResult.ForJob(Job(JobState.Planned));
+        untimed.Status = ExportStatus.Exported;               // no Seconds: not counted
+
+        var line = ExportResultLog.TimingSummary(new[] { a, b, quickFailure, untimed }).Single();
+
+        Assert.Equal("Step: 2 job(s), 6.0 s total, 3.0 s average, slowest 4.0 s, opening the file 1.0 s average", line);
+    }
 }
