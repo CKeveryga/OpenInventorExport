@@ -1,0 +1,32 @@
+{
+	"SchemaVersion": 1,
+
+	"Unresolved": "Block", 
+
+	"Tasks": [
+		{
+			"Name": "Tables",
+			"FolderTemplate": "{task}",
+			"Selection": {
+				"Scope": "AllUniqueFiles",
+				"DocumentTypes": [ "Part", "SheetMetal", "Assembly" ]
+			},
+			"Outputs": [
+				{ "Format": "Xlsx", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
+				{ "Format": "Csv", "Name": "ERP_Import", "Mode": "Occurrence", "Key": "PartNumber" }
+			]
+		}
+	],
+
+	"Rollup": {
+		"Mode": "Structured",
+		"IncludeAssemblies": true,
+		"Key": "PartNumber"
+	},
+
+	"BomColumns": [
+		{ "Name": "Part Number" },
+		{ "Name": "Description" },
+		{ "Name": "Material" }
+	]
+}
