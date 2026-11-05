@@ -577,8 +577,8 @@ Resist building UI early; a good config *format* first.
 20. ~~Units for numeric filters~~ **Resolved 2026-11-04** (4.14): filters accept units (`"200 mm"`, `"0.25 lb"`); mm, cm, m, in, ft, g, kg, lb supported; mismatches fail and are reported. Area and Volume are not supported.
 21. Per-task log file inside the task folder? Currently the one `export-log.csv/.json` in the output root has everything (with a task name on each line); a vendor probably should not receive the failure list. Add only if asked.
 22. BOM table formats for the `bom` command (XLSX/CSV choice from config) are not configurable; the XLSX line in `Actions.Bom` is a temporary placeholder.
-23. **Structured mode when placements of one assembly differ** (4.4): the quantity comes from the first placement met. Owner decided to leave it as is (tested in both orders with the same result). If it ever matters: use the largest count across placements.
-24. **Clean file name in tables** (4.13): code and test were proposed (strip the `<member>` suffix in the CSV and XLSX writers). Owner to confirm it was applied. Open sub-question: two model states of one file would show the same name with `Key: FilePath`.
+23. **Structured mode when placements of one assembly differ** (4.4): unknown qty behaviour. 
+24. **Clean file name in tables** (4.13): code and test were proposed (strip the `<member>` suffix in the CSV and XLSX writers). Confirmed clean file names in tables. Open sub-question: two model states of one file would show the same name with `Key: FilePath`. Confirmed, same names. 
 25. **`Part Icon` and other picture-valued properties** (4.8): not checked in a fixture yet.
 26. **Stale wording to clean up:** the usage text in `Program.cs` still says `--only <task>   (plan/export) run just that task and its package.` and `ExportPlanner.SelectedFiles` has a comment mentioning "the package table". The "package" concept no longer exists.
 27. **iPart / iAssembly members:** parked by the owner until the rest is done (section 0).
