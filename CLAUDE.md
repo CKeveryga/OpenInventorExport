@@ -364,12 +364,12 @@ So the stored form depends on the property: bare numbers in internal units (cm, 
 
 **How filters compare (`Units.cs`, `Units.TryCompare`):** both sides are read as a number plus an optional unit word (invariant culture, decimal point). Supported units: **mm, cm, m, in, ft** (length), **g, kg, lb** (mass; `lbmass`, Inventor's own display name, is also accepted in stored values). Rules:
 - A filter `Value` with a unit (e.g. `"200 mm"`, `"0.25 lb"`) converts both sides to a base unit (cm or g) before comparing, so inch and millimetre documents compare correctly.
-- A bare-number stored value gets a unit only for the built-ins in a small verified table: Design Tracking `Mass` (grams), `Flat Pattern Width` and `Flat Pattern Length` (centimetres). **Assumption: `Mass` is in the Design Tracking set** (the pasted snippet did not show its set). Any other bare number is a plain number with no unit.
+- A bare-number stored value gets a unit only for the built-ins in a small verified table: Design Tracking `Mass` (grams), `Flat Pattern Width` and `Flat Pattern Length` (centimetres). **Verified: `Mass` is in the Design Tracking set**. Any other bare number is a plain number with no unit.
 - A filter `Value` **without** a unit compares the raw numbers (the stored value must then have no unit either, so `Mass < 100` means 100 grams and `Plain < 5` works as before).
 - A mismatch **fails the filter and is reported** in the exclusion report with the reason, never guessed: a plain stored number against a filter with a unit, a stored value with a unit against a filter without one, a length against a mass, an unsupported unit on either side (e.g. `furlong`, `mm^2`), a non-numeric stored value.
 - Missing or non-numeric stored values fail the filter, as before.
 
-**Unverified:** built-in numbers in a **millimetre** document (Mass and Flat Pattern were only checked in an inch document; believed independent of the display unit); Area and Volume (believed cm² and cm³ as bare numbers, and Area was seen as text with `^2` for sheet metal, so not supported); a regional setting with a decimal comma in stored text (the parser reads only a decimal point); whether `Mass` is in the Design Tracking set.
+**Unverified:** Area and Volume (believed cm² and cm³ as bare numbers, and Area was seen as text with `^2` for sheet metal, so not supported); a regional setting with a decimal comma in stored text (the parser reads only a decimal point).
 
 ---
 
