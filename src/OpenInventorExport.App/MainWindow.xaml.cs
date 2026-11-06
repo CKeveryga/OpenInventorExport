@@ -35,6 +35,8 @@ public partial class MainWindow : Window
         else
             ShowConfigProblem("No config file yet. Choose one with Browse.");
         FillTasks();
+        TaskBox.SelectionChanged += (_, _) => ClearPlan();
+        ClearPlan();
     }
 
     private string OutputFolder => OutputBox.Text.Trim();
@@ -87,6 +89,7 @@ public partial class MainWindow : Window
         }
         FillTasks();
         ShowSummary();   // warnings depend on the config's Unresolved policy
+        ClearPlan();
     }
 
     private void ShowConfigProblem(string text)
@@ -125,8 +128,10 @@ public partial class MainWindow : Window
 
     private void RememberOutput()
     {
+        if (_settings.OutputFolder == OutputFolder) return;
         _settings.OutputFolder = OutputFolder;
         _settings.Save();
+        ClearPlan();   // the plan's paths point into the old folder
     }
 
     private void OnOpenOutput(object sender, RoutedEventArgs e)
@@ -177,6 +182,7 @@ public partial class MainWindow : Window
             SetBusy(false);
         }
         ShowSummary();
+        ClearPlan();
     }
 
     private void OnLoadSnapshot(object sender, RoutedEventArgs e)
@@ -187,13 +193,18 @@ public partial class MainWindow : Window
             Filter = "Snapshots (*.json)|*.json|All files (*.*)|*.*",
             InitialDirectory = Directory.Exists(OutputFolder) ? OutputFolder : null,
         };
-        if (dlg.ShowDialog(this) != true) return;
+        if (dlg.ShowDialog(this) == true)
+            LoadSnapshot(dlg.FileName);
+    }
 
+    /// <summary>Loads a saved snapshot (from the Load button, or the command line).</summary>
+    internal void LoadSnapshot(string file)
+    {
         try
         {
-            _snapshot = ExportWorkflow.LoadSnapshot(dlg.FileName);
+            _snapshot = ExportWorkflow.LoadSnapshot(file);
             SnapshotStatus.Foreground = Brushes.Black;
-            SnapshotStatus.Text = $"Loaded saved snapshot {dlg.FileName} (collected {_snapshot.CreatedUtc.ToLocalTime():yyyy-MM-dd HH:mm}). " +
+            SnapshotStatus.Text = $"Loaded saved snapshot {file} (collected {_snapshot.CreatedUtc.ToLocalTime():yyyy-MM-dd HH:mm}). " +
                                   "Collect again if the assembly has changed since.";
             SetStatus("Snapshot loaded.");
         }
@@ -202,6 +213,7 @@ public partial class MainWindow : Window
             MessageBox.Show(this, ex.Message, "Load snapshot", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         ShowSummary();
+        ClearPlan();
     }
 
     // ---------- Summary ----------
@@ -280,6 +292,7 @@ public partial class MainWindow : Window
     {
         CollectButton.IsEnabled = !busy;
         LoadButton.IsEnabled = !busy;
+        UpdateButtons();
         Cursor = busy ? System.Windows.Input.Cursors.Wait : null;
         if (status != null) SetStatus(status);
     }

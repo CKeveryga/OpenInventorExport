@@ -62,12 +62,15 @@
                         ToolTip="Reads the active assembly in the running Inventor (read-only) and saves snapshot.json in the output folder" />
                 <Button x:Name="LoadButton" Content="Load snapshot..." Click="OnLoadSnapshot"
                         ToolTip="Use a snapshot.json saved earlier instead of collecting" />
+                <Button x:Name="PlanButton" Content="2  Plan" Margin="16,0,0,0" Click="OnPlan" IsEnabled="False"
+                        ToolTip="Works out what would be exported and where, and what the rules leave out. Exports nothing." />
                 <TextBlock x:Name="SnapshotStatus" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
                            Text="No snapshot yet. Collect from Inventor, or load a saved snapshot." Foreground="Gray" />
             </DockPanel>
 
-            <GroupBox Grid.Row="5" Header="Summary" Padding="8">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <TabControl Grid.Row="5" x:Name="Tabs">
+            <TabItem Header="Summary">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
                     <StackPanel>
                         <!-- Warnings first, where they cannot be missed -->
                         <TextBlock x:Name="WarningText" Foreground="DarkRed" FontWeight="SemiBold" TextWrapping="Wrap"
@@ -84,7 +87,68 @@
                         </Expander>
                     </StackPanel>
                 </ScrollViewer>
-            </GroupBox>
+            </TabItem>
+
+            <!-- The plan: one row per file to export and per table. Step 5 adds the results of a run. -->
+            <TabItem x:Name="PlanTab" Header="Plan">
+                <DockPanel Margin="6">
+                    <TextBlock x:Name="PlanInfo" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4"
+                               Text="Collect or load a snapshot, then press Plan." Foreground="Gray" />
+                    <TextBlock x:Name="PlanWarnings" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4"
+                               Foreground="DarkRed" FontWeight="SemiBold" Visibility="Collapsed" />
+                    <DockPanel DockPanel.Dock="Top" Margin="0,2,0,6">
+                        <TextBlock Text="Filter" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox x:Name="PlanFilter" Width="300" HorizontalAlignment="Left" TextChanged="OnPlanFilterChanged"
+                                 ToolTip="Shows only rows containing this text (file, description, task, format, state, folder...)" />
+                    </DockPanel>
+                    <DataGrid x:Name="PlanGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Extended">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" />
+                            <DataGridTextColumn Header="Task" Binding="{Binding Task}" />
+                            <DataGridTextColumn Header="Format" Binding="{Binding Format}" />
+                            <DataGridTextColumn Header="From" Binding="{Binding Source}" />
+                            <DataGridTextColumn Header="File" Binding="{Binding File}" />
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" MaxWidth="300" />
+                            <DataGridTextColumn Header="Written to" Binding="{Binding Output}" />
+                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem x:Name="LeftOutTab" Header="Left out by rules">
+                <DockPanel Margin="6">
+                    <TextBlock x:Name="LeftOutInfo" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,6" Foreground="Gray"
+                               Text="What each task's rules leave out, and why. Shown after Plan." />
+                    <DataGrid x:Name="LeftOutGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Task" Binding="{Binding Context}" />
+                            <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" />
+                            <DataGridTextColumn Header="File" Binding="{Binding FileName}" />
+                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" />
+                            <DataGridTextColumn Header="Occurrence" Binding="{Binding OccurrencePath}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem x:Name="UnreadableTab" Header="Unreadable">
+                <DockPanel Margin="6">
+                    <TextBlock x:Name="UnreadableInfo" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,6" Foreground="Gray"
+                               Text="Components Inventor could not read. Shown after Plan." />
+                    <DataGrid x:Name="UnreadableGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" />
+                            <DataGridTextColumn Header="Occurrence" Binding="{Binding OccurrencePath}" />
+                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            </TabControl>
         </Grid>
     </DockPanel>
 </Window>
