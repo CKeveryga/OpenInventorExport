@@ -292,6 +292,9 @@ public partial class MainWindow : Window
     {
         CollectButton.IsEnabled = !busy;
         LoadButton.IsEnabled = !busy;
+        ConfigRow.IsEnabled = !busy;
+        OutputRow.IsEnabled = !busy;
+        TaskRow.IsEnabled = !busy;
         UpdateButtons();
         Cursor = busy ? System.Windows.Input.Cursors.Wait : null;
         if (status != null) SetStatus(status);
@@ -318,5 +321,15 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e) => RememberOutput();
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (_runCancel != null)
+        {
+            MessageBox.Show(this, "Exports are running. Press Cancel and wait until the run stops before closing.",
+                "Open Inventor Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            e.Cancel = true;
+            return;
+        }
+        RememberOutput();
+    }
 }

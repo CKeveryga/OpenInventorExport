@@ -8,10 +8,18 @@ using OpenInventorExport.Inventor;
 
 namespace OpenInventorExport.App;
 
-/// <summary>One line of the plan grid: a file to export or a table to write.</summary>
-public sealed class PlanRow
+/// <summary>One line of the plan grid: a file to export or a table to write. During a run, State, Detail and Time change to the result.</summary>
+public sealed class PlanRow : INotifyPropertyChanged
 {
-    public string State { get; set; } = "";
+    private string _state = "";
+    private string _detail = "";
+    private string _time = "";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string State { get => _state; set { _state = value; Changed(nameof(State)); } }
+    /// <summary>Seconds the export took, filled in during a run.</summary>
+    public string Time { get => _time; set { _time = value; Changed(nameof(Time)); } }
     public string Task { get; set; } = "";
     public string Format { get; set; } = "";
     public string Source { get; set; } = "";
@@ -20,10 +28,12 @@ public sealed class PlanRow
     public string Description { get; set; } = "";
     /// <summary>Output path, shown relative to the output folder.</summary>
     public string Output { get; set; } = "";
-    public string Detail { get; set; } = "";
+    public string Detail { get => _detail; set { _detail = value; Changed(nameof(Detail)); } }
 
     /// <summary>Text the filter box searches.</summary>
     public string SearchText => $"{State} {Task} {Format} {Source} {File} {Description} {Output} {Detail}";
+
+    private void Changed(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 /// <summary>Step 4: Plan, and the Plan / Left out by rules / Unreadable tabs.</summary>
@@ -151,6 +161,8 @@ public partial class MainWindow
             Detail = t.Detail ?? "",
         })).ToList();
 
+        _rows = rows;
+        RunSummary.Visibility = Visibility.Collapsed;
         _planView = CollectionViewSource.GetDefaultView(rows);
         _planView.Filter = PlanFilterMatches;
         PlanGrid.ItemsSource = _planView;
@@ -208,7 +220,9 @@ public partial class MainWindow
         if (PlanGrid == null) return;   // during InitializeComponent
         bool hadPlan = _plan != null;
         _plan = null;
+        _rows = null;
         _planView = null;
+        RunSummary.Visibility = Visibility.Collapsed;
         PlanGrid.ItemsSource = null;
         LeftOutGrid.ItemsSource = null;
         UnreadableGrid.ItemsSource = null;
@@ -227,11 +241,19 @@ public partial class MainWindow
         UpdateButtons();
     }
 
-    /// <summary>Plan needs a snapshot and a loaded config.</summary>
+    /// <summary>Plan needs a snapshot and a loaded config; Run needs a current plan that is not blocked.</summary>
     private void UpdateButtons()
     {
-        if (PlanButton == null) return;
-        PlanButton.IsEnabled = _snapshot != null && _config != null && CollectButton.IsEnabled;
+        if (PlanButton == null || RunButton == null) return;
+        bool idle = CollectButton.IsEnabled;
+        PlanButton.IsEnabled = _snapshot != null && _config != null && idle;
+        RunButton.IsEnabled = _plan != null && !_plan.Blocked && idle;
+        RunButton.ToolTip = _plan == null
+            ? "Press Plan first: Run exports exactly what the plan shows."
+            : _plan.Blocked
+                ? $"Blocked: {_plan.Unreadable.Count} component(s) could not be read and the config says Unresolved = Block. " +
+                  "Resolve the files in Inventor and collect again (see the Unreadable tab)."
+                : "Exports what the plan shows. Asks first.";
     }
 
     private void OnPlanFilterChanged(object sender, TextChangedEventArgs e) => _planView?.Refresh();

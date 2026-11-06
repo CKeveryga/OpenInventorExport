@@ -48,6 +48,8 @@ public sealed class RunResult
     public string? ExclusionReportPath { get; set; }
     public string LogCsvPath { get; set; } = "";
     public string LogJsonPath { get; set; } = "";
+    /// <summary>True when the run was cancelled: jobs after the cancel did not run and tables were not written (all logged as such).</summary>
+    public bool Cancelled { get; set; }
 }
 
 /// <summary>One task after a run: complete, or the outputs that were not exported.</summary>
@@ -137,9 +139,12 @@ public static class ExportWorkflow
     /// unreadable component, writes the tables, then export-log.csv and export-log.json.
     /// <paramref name="onResult"/> is called for every result as it happens (file jobs, unreadable, tables).
     /// Refuses (throws) under Unresolved = Block with unreadable components, whatever the caller checked before.
+    /// <paramref name="cancel"/> stops the run between jobs (the job in progress finishes; Inventor cannot be
+    /// interrupted mid-save). Every job that did not run, and every table, then gets a Failed "Cancelled" result,
+    /// so the log still accounts for everything planned.
     /// </summary>
     public static RunResult Run(PlanResult plan, Snapshot snapshot, ExportConfig config, string outRoot,
-        Action<ExportResult>? onResult = null)
+        Action<ExportResult>? onResult = null, CancellationToken cancel = default)
     {
         ThrowIfBlocked(snapshot, config);
 
@@ -149,9 +154,19 @@ public static class ExportWorkflow
             ExclusionReportPath = WriteExclusionReport(plan.Exclusions, Path.Combine(outRoot, "export-excluded.csv")),
         };
 
+        // JobRunner reads the jobs one at a time, so stopping the sequence stops the run between jobs.
         var clock = Stopwatch.StartNew();
-        run.Results = JobRunner.Run(plan.Jobs, onResult);
+        run.Results = JobRunner.Run(plan.Jobs.TakeWhile(_ => !cancel.IsCancellationRequested), onResult);
         run.FileJobsTime = clock.Elapsed;
+
+        run.Cancelled = run.Results.Count < plan.Jobs.Count;
+        foreach (var job in plan.Jobs.Skip(run.Results.Count))
+        {
+            var r = ExportResult.ForJob(job);   // Failed "Not run" (Conflict stays Conflict)
+            if (job.State == JobState.Planned) r.Detail = "Cancelled before it ran";
+            run.Results.Add(r);
+            onResult?.Invoke(r);
+        }
 
         foreach (var k in plan.Unreadable)
         {
@@ -160,7 +175,26 @@ public static class ExportWorkflow
             onResult?.Invoke(r);
         }
 
-        run.Results.AddRange(ExportTables.Write(snapshot, config, plan.Tasks, plan.Tables, onResult));
+        if (run.Cancelled || cancel.IsCancellationRequested)
+        {
+            // A table lists every file its task selects; after a cancel it would suggest a complete delivery.
+            run.Cancelled = true;
+            foreach (var t in plan.Tables)
+            {
+                var r = new ExportResult
+                {
+                    TaskName = t.TaskName, Format = t.Output.Format, ModelPath = "(table)", OutputPath = t.OutputPath,
+                    Status = t.State == JobState.Conflict ? ExportStatus.Conflict : ExportStatus.Failed,
+                    Detail = t.State == JobState.Conflict ? t.Detail : "Cancelled: table not written",
+                };
+                run.Results.Add(r);
+                onResult?.Invoke(r);
+            }
+        }
+        else
+        {
+            run.Results.AddRange(ExportTables.Write(snapshot, config, plan.Tasks, plan.Tables, onResult));
+        }
 
         // UTF-8 with BOM so Excel opens the CSV correctly.
         run.LogCsvPath = Path.Combine(outRoot, "export-log.csv");

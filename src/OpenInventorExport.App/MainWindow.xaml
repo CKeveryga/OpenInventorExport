@@ -23,6 +23,14 @@
         <!-- Status line at the bottom: what the window is doing now -->
         <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Foreground="Gray" Text="Ready." />
 
+        <!-- Shown while exports run -->
+        <DockPanel x:Name="ProgressPanel" DockPanel.Dock="Bottom" Margin="0,8,0,0" Visibility="Collapsed">
+            <Button x:Name="CancelButton" DockPanel.Dock="Right" Content="Cancel" Click="OnCancelRun"
+                    ToolTip="Stops after the job in progress. Jobs not run and tables are logged as cancelled." />
+            <TextBlock x:Name="ProgressText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,4,0" MinWidth="90" />
+            <ProgressBar x:Name="RunProgress" Height="18" />
+        </DockPanel>
+
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -34,7 +42,7 @@
             </Grid.RowDefinitions>
 
             <!-- Config file -->
-            <DockPanel Grid.Row="0">
+            <DockPanel Grid.Row="0" x:Name="ConfigRow">
                 <TextBlock Text="Config" Style="{StaticResource Label}" />
                 <Button DockPanel.Dock="Right" Content="Reload" Click="OnReloadConfig" ToolTip="Read the config file again (after editing it)" />
                 <Button DockPanel.Dock="Right" Content="Browse..." Click="OnBrowseConfig" />
@@ -43,14 +51,14 @@
             <TextBlock Grid.Row="1" x:Name="ConfigStatus" Margin="60,4,0,8" TextWrapping="Wrap" />
 
             <!-- Output folder and task -->
-            <DockPanel Grid.Row="2" Margin="0,0,0,6">
+            <DockPanel Grid.Row="2" Margin="0,0,0,6" x:Name="OutputRow">
                 <TextBlock Text="Output" Style="{StaticResource Label}" />
                 <Button DockPanel.Dock="Right" Content="Open folder" Click="OnOpenOutput" />
                 <Button DockPanel.Dock="Right" Content="Browse..." Click="OnBrowseOutput" />
                 <TextBox x:Name="OutputBox" VerticalContentAlignment="Center" LostFocus="OnOutputEdited"
                          ToolTip="Exports, tables, logs and snapshot.json are written here" />
             </DockPanel>
-            <DockPanel Grid.Row="3" Margin="0,0,0,10">
+            <DockPanel Grid.Row="3" Margin="0,0,0,10" x:Name="TaskRow">
                 <TextBlock Text="Task" Style="{StaticResource Label}" />
                 <ComboBox x:Name="TaskBox" Width="300" HorizontalAlignment="Left"
                           ToolTip="Plan and run every task, or just one" />
@@ -64,6 +72,8 @@
                         ToolTip="Use a snapshot.json saved earlier instead of collecting" />
                 <Button x:Name="PlanButton" Content="2  Plan" Margin="16,0,0,0" Click="OnPlan" IsEnabled="False"
                         ToolTip="Works out what would be exported and where, and what the rules leave out. Exports nothing." />
+                <Button x:Name="RunButton" Content="3  Run exports" Margin="16,0,0,0" Click="OnRun" IsEnabled="False"
+                        ToolTipService.ShowOnDisabled="True" />
                 <TextBlock x:Name="SnapshotStatus" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
                            Text="No snapshot yet. Collect from Inventor, or load a saved snapshot." Foreground="Gray" />
             </DockPanel>
@@ -94,6 +104,14 @@
                 <DockPanel Margin="6">
                     <TextBlock x:Name="PlanInfo" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4"
                                Text="Collect or load a snapshot, then press Plan." Foreground="Gray" />
+                    <!-- After a run: per-task outcome, timing, where the logs are -->
+                    <Border x:Name="RunSummary" DockPanel.Dock="Top" BorderThickness="1" BorderBrush="LightGray" Padding="6"
+                            Margin="0,0,0,6" Visibility="Collapsed">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" VerticalAlignment="Top" Content="Open folder" Click="OnOpenOutput" />
+                            <TextBlock x:Name="RunSummaryText" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
                     <TextBlock x:Name="PlanWarnings" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4"
                                Foreground="DarkRed" FontWeight="SemiBold" Visibility="Collapsed" />
                     <DockPanel DockPanel.Dock="Top" Margin="0,2,0,6">
@@ -111,6 +129,7 @@
                             <DataGridTextColumn Header="File" Binding="{Binding File}" />
                             <DataGridTextColumn Header="Description" Binding="{Binding Description}" MaxWidth="300" />
                             <DataGridTextColumn Header="Written to" Binding="{Binding Output}" />
+                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" />
                             <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
