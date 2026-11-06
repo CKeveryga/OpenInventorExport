@@ -192,7 +192,7 @@ public static class ExportPlanner
         return chosen;
     }
 
-    /// <summary>The unique model files (member suffix stripped) the task selects. Used by the package table.</summary>
+    /// <summary>The unique model files (member suffix stripped) the task selects. Used by the task's tables.</summary>
     internal static HashSet<string> SelectedFiles(Snapshot snapshot, ExportTask task) =>
         new HashSet<string>(
             Select(snapshot, task, null).Select(c => PathUtil.StripMemberSuffix(c.FullPath!)),
