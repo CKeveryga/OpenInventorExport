@@ -124,7 +124,7 @@
                     </Grid>
 
                     <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (for the bom command)" />
-                    <local:BomRulesTable x:Name="RollupBomRules" HorizontalAlignment="Left" />
+                    <local:BomRulesTable x:Name="RollupBomRules" />
 
                     <TextBlock Style="{StaticResource Heading}" Text="BOM columns (default columns for bom and for tables)" />
                     <DockPanel>
@@ -272,7 +272,7 @@
                 <TextBlock Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap" x:Name="FiltersNote" />
 
                 <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (which assemblies, and what inside them, this task selects)" />
-                <local:BomRulesTable x:Name="TaskBomRules" HorizontalAlignment="Left" />
+                <local:BomRulesTable x:Name="TaskBomRules" />
 
                 <TextBlock Style="{StaticResource Heading}" Text="Outputs (what this task produces, each in an optional subfolder of the root folder)" />
                 <Grid>

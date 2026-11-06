@@ -23,25 +23,40 @@ public class BomRulesTable : Grid
     private Func<BomStructureKind, string> _childrenDefault = _ => "kept";
     private bool _loading;
 
+    /// <summary>
+    /// One column per structure and two rows (the item itself, its children), so the table is wide and short.
+    /// A drop-down's full text is also its tooltip, in case a column is too narrow to show it.
+    /// </summary>
     public BomRulesTable()
     {
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
-        ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
+        foreach (var _ in Order)
+            ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 120 });
+        for (int r = 0; r < 3; r++)
+            RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        AddRow(0, Header("Structure"), Header("The item itself"), Header("Its children"));
-        int row = 1;
+        Place(new TextBlock { Text = "The item itself", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) }, 1, 0);
+        Place(new TextBlock { Text = "Its children", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) }, 2, 0);
+
+        int column = 1;
         foreach (var kind in Order)
         {
-            var item = new ComboBox { Margin = new Thickness(0, 2, 8, 2) };
-            var children = new ComboBox { Margin = new Thickness(0, 2, 0, 2) };
+            var item = new ComboBox { Margin = new Thickness(0, 2, 6, 2) };
+            var children = new ComboBox { Margin = new Thickness(0, 2, 6, 2) };
             var k = kind;
-            item.SelectionChanged += (_, _) => { if (!_loading) Write(k); };
-            children.SelectionChanged += (_, _) => { if (!_loading) Write(k); };
+            item.SelectionChanged += (_, _) => { ShowTextAsToolTip(item); if (!_loading) Write(k); };
+            children.SelectionChanged += (_, _) => { ShowTextAsToolTip(children); if (!_loading) Write(k); };
             _rows[kind] = (item, children);
-            AddRow(row++, new TextBlock { Text = kind.ToString(), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) }, item, children);
+
+            Place(Header(kind.ToString()), 0, column);
+            Place(item, 1, column);
+            Place(children, 2, column);
+            column++;
         }
     }
+
+    private static void ShowTextAsToolTip(ComboBox box) =>
+        box.ToolTip = (box.SelectedItem as ComboBoxItem)?.Content;
 
     /// <summary>
     /// Shows a rule list. <paramref name="childrenDefault"/> says what "Default" means for a structure's children
@@ -126,12 +141,10 @@ public class BomRulesTable : Grid
     private static TextBlock Header(string text) =>
         new() { Text = text, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 2) };
 
-    private void AddRow(int row, UIElement a, UIElement b, UIElement c)
+    private void Place(UIElement element, int row, int column)
     {
-        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        SetRow(a, row); SetColumn(a, 0);
-        SetRow(b, row); SetColumn(b, 1);
-        SetRow(c, row); SetColumn(c, 2);
-        Children.Add(a); Children.Add(b); Children.Add(c);
+        SetRow(element, row);
+        SetColumn(element, column);
+        Children.Add(element);
     }
 }
