@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<!--
+	  Inventor add-in: a thin launcher (section 4.1, open question 30). Runs INSIDE Inventor.
+	  Two builds of the same code:
+	    net48           -> Inventor 2023/2024 (.NET Framework 4.8), against the 2024 interop
+	    net8.0-windows  -> Inventor 2025-2027 (Autodesk: .NET 8 add-ins are expected to load in 2027), against the 2027 interop
+	  References ONLY the Inventor interop: no Core, no Inventor project. The work runs in a separate program.
+	  Based on Autodesk's SDK sample VCSharp.NET\AddIns\SimpleAddIn (registry-free: .addin file + embedded manifest).
+	-->
+	<PropertyGroup>
+		<TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWindowsForms>true</UseWindowsForms>
+		<AssemblyName>OpenInventorExport.AddIn</AssemblyName>
+		<RootNamespace>OpenInventorExport.AddIn</RootNamespace>
+		<!-- Registry-free COM: tells Inventor which class to create (same as the SDK sample). -->
+		<ApplicationManifest>OpenInventorExport.AddIn.manifest</ApplicationManifest>
+		<InventorInterop2024 Condition="'$(InventorInterop2024)' == ''">C:\Program Files\Autodesk\Inventor 2024\Bin\Public Assemblies</InventorInterop2024>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<Reference Include="Autodesk.Inventor.Interop">
+			<HintPath>$(InventorInterop2024)\Autodesk.Inventor.Interop.dll</HintPath>
+			<!-- Inventor already has its interop loaded; do not ship a copy next to the add-in. -->
+			<Private>False</Private>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+		<Reference Include="Autodesk.Inventor.Interop">
+			<HintPath>$(InventorPublicAssemblies)\Autodesk.Inventor.Interop.dll</HintPath>
+			<Private>False</Private>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+		</Reference>
+	</ItemGroup>
+</Project>

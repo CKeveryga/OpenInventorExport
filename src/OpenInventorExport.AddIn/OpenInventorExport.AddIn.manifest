@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Registry-free COM manifest, embedded in the DLL. Shape copied from Autodesk's SDK SimpleAddIn sample.
+     clsid must equal the Guid on AddInServer and ClassId in the .addin file; name is the full class name. -->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+<assemblyIdentity name="OpenInventorExport.AddIn" version="1.0.0.0" processorArchitecture="msil"></assemblyIdentity>
+<clrClass clsid="{0CC8A77E-188C-46AD-8D2A-E9DE6BC374D6}" progid="OpenInventorExport.AddIn.AddInServer" threadingModel="Both" name="OpenInventorExport.AddIn.AddInServer" runtimeVersion=""></clrClass>
+<file name="OpenInventorExport.AddIn.dll" hashalg="SHA1"></file>
+</assembly>

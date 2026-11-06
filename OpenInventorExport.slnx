@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
   </Folder>
+  <Project Path="src/OpenInventorExport.AddIn/OpenInventorExport.AddIn.csproj" />
   <Project Path="src/OpenInventorExport.Cli/OpenInventorExport.Cli.csproj" Id="8fc3fd57-52d6-4f55-834f-9af28a217b0e" />
   <Project Path="src/OpenInventorExport.ConfigEditor/OpenInventorExport.ConfigEditor.csproj" />
   <Project Path="src/OpenInventorExport.Core/OpenInventorExport.Core.csproj" Id="3f57052a-1f36-4f30-9f8b-fe4a1cc04064" />
