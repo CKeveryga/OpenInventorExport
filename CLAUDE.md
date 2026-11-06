@@ -58,11 +58,10 @@
 **Done in the 2026-11-05/06 session (branch `feature/config-editor`):** Core: `ExportConfigJson.Parse`/`Validate`, `ExportConfigFile.CheckIniFiles`/`Problems`/`Save` (4.5); forbidden folder characters rejected (4.6); `{type}` in `FolderTemplate` allowed with tables, tables skip the `{type}` level (`ExportPlanner.WithoutTypeLevels`, 4.6, verified by the owner in Inventor). Editor: all of section 4.15. `.gitignore` ignores `*.bak`. Tests: `ConfigValidateTests`, `FolderCharacterTests`, new cases in `ExportConfigFileTests` and `TableOutputTests` (226 tests in total).
 
 **Next up (suggested order, owner to confirm each design before code is written):**
-1. **Owner review of the config editor branch** (2026-11-07), fixes from the review, then merge `feature/config-editor` and tag (owner picks the number).
-2. **Add-in launcher and a first UI, before the trial ends (needs Inventor, owner tests in the trial).** Design is open question 30; settle it first, with an example the owner can recognize, then build in small steps. Suggested shape (a recommendation, not decided): a thin add-in with a ribbon button that starts the UI/CLI out-of-process (the existing architecture rule), and a small window that does what the interactive menu does today: pick config and output folder, collect, plan, run, show the results. The config editor can be opened from it.
-3. **Held Inventor tests, run through the UI once it exists** (list in section 7 "Not yet verified"): iPart / iAssembly members, non-primary model states, picture-valued properties (`Part Icon`), Area/Volume storage, built-in numbers in millimetre documents.
-4. `net48` build and testing (needs Inventor 2023/2024), installer.
-5. `Remainder` selection (open question 17); ERP-ready table output (open question 31); zip (open question 19); property tokens in folders (open question 32).
+1. **Add-in launcher and a first UI, before the trial ends (needs Inventor, owner tests in the trial).** Design is open question 30; settle it first, with an example the owner can recognize, then build in small steps. Suggested shape (a recommendation, not decided): a thin add-in with a ribbon button that starts the UI/CLI out-of-process (the existing architecture rule), and a small window that does what the interactive menu does today: pick config and output folder, collect, plan, run, show the results. The config editor can be opened from it.
+2. **Held Inventor tests, run through the UI once it exists** (list in section 7 "Not yet verified"): iPart / iAssembly members, non-primary model states, picture-valued properties (`Part Icon`), Area/Volume storage, built-in numbers in millimetre documents.
+3. `net48` build and testing (needs Inventor 2023/2024), installer.
+4. `Remainder` selection (open question 17); ERP-ready table output (open question 31); zip (open question 19); property tokens in folders (open question 32).
 
 ---
 
