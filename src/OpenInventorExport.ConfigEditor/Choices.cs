@@ -34,19 +34,6 @@ public static class Choices
     public static ContentCenterMode[] ContentCenterModes { get; } = Enum.GetValues<ContentCenterMode>();
     public static PropertyDataType[] DataTypes { get; } = Enum.GetValues<PropertyDataType>();
 
-    public static ExportFormat[] Formats { get; } = Enum.GetValues<ExportFormat>();
     public static ExportSource[] Sources { get; } = Enum.GetValues<ExportSource>();
     public static PdfSheetMode[] PdfSheetModes { get; } = Enum.GetValues<PdfSheetMode>();
-
-    /// <summary>Label for a table's Mode or Key that is not set: it then uses the General page's Rollup value.</summary>
-    public const string FromGeneral = "(from General)";
-
-    public static string[] OutputModeChoices { get; } =
-        new[] { FromGeneral }.Concat(Enum.GetNames<RollupMode>()).ToArray();
-    public static string[] OutputKeyChoices { get; } =
-        new[] { FromGeneral }.Concat(Enum.GetNames<RollupKey>()).ToArray();
-
-    /// <summary>"(mode default)" plus the InseparableHandling names. See NullableChoiceConverter.</summary>
-    public static string[] InseparableChoices { get; } =
-        new[] { NullableChoiceConverter.DefaultLabel }.Concat(Enum.GetNames<InseparableHandling>()).ToArray();
 }

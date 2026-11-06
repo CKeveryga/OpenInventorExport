@@ -24,10 +24,17 @@ public partial class MainWindow : Window
     private string? _path;          // null = never saved
     private string _savedJson = ""; // the config as last opened or saved, to tell whether it changed
     private bool _checkPending;
+    private readonly InheritChoice<InseparableHandling> _inseparable;
 
     public MainWindow()
     {
         InitializeComponent();
+
+        // What "not set" means for Inseparable depends on the mode (Rollup.Apply: Flat = single item, else children).
+        _inseparable = new InheritChoice<InseparableHandling>(InseparableChoice, () =>
+            $"Mode default ({(_config.Rollup.Mode == RollupMode.Flat ? InseparableHandling.AsSingleItem : InseparableHandling.IncludeChildren)} in {_config.Rollup.Mode})");
+        _mode = new InheritChoice<RollupMode>(ModeChoice, () => $"From General ({_config.Rollup.Mode})");
+        _key = new InheritChoice<RollupKey>(KeyChoice, () => $"From General ({_config.Rollup.Key})");
 
         // Any edit anywhere in the window schedules a re-check. The key and mouse events catch
         // grid edits (commit with Enter, Delete a row), which have no routed "changed" event.
@@ -69,6 +76,7 @@ public partial class MainWindow : Window
         _path = path;
         _savedJson = ExportConfigJson.ToJson(config);
         GeneralPage.DataContext = _config;
+        _inseparable.Load(() => _config.Rollup.Inseparable, v => _config.Rollup.Inseparable = v);
         RebuildPageList(selectIndex: 0);
         Refresh();
     }
@@ -167,6 +175,7 @@ public partial class MainWindow : Window
         TaskPage.Visibility = task == null ? Visibility.Collapsed : Visibility.Visible;
         TaskPage.DataContext = task;
         TaskSummary.Text = task == null ? "" : Summary(task);
+        RebuildOutputsList(selectIndex: 0);
     }
 
     private void OnAddTask(object sender, RoutedEventArgs e)
@@ -205,6 +214,27 @@ public partial class MainWindow : Window
         RebuildPageList(selectIndex: index - 1);
     }
 
+    /// <summary>Copies the selected task, with everything in it, under a new name right below it.</summary>
+    private void OnDuplicateTask(object sender, RoutedEventArgs e)
+    {
+        var task = SelectedTask;
+        if (task == null) return;
+
+        var copy = Clone(task);
+        string baseName = task.Name + " copy";
+        copy.Name = baseName;
+        for (int n = 2; _config.Tasks.Any(t => string.Equals(t.Name, copy.Name, StringComparison.OrdinalIgnoreCase)); n++)
+            copy.Name = $"{baseName} {n}";
+
+        int index = _config.Tasks.IndexOf(task) + 1;
+        _config.Tasks.Insert(index, copy);
+        RebuildPageList(selectIndex: index + 1);
+    }
+
+    /// <summary>A deep copy (through JSON), so the copy shares no lists with the original.</summary>
+    private static T Clone<T>(T value) =>
+        System.Text.Json.JsonSerializer.Deserialize<T>(System.Text.Json.JsonSerializer.Serialize(value))!;
+
     // ---------- Checking ----------
 
     private void ScheduleCheck()
@@ -239,11 +269,8 @@ public partial class MainWindow : Window
         if (SelectedTask is { } task)
             TaskSummary.Text = Summary(task);
 
-        // The Columns panel follows the selected output row, and shows only for a table (its Format may just have changed).
-        var output = OutputsGrid.SelectedItem as OutputSpec;
-        bool isTable = output != null && ExportPlanner.IsTable(output.Format);
-        TableColumnsPanel.Visibility = isTable ? Visibility.Visible : Visibility.Collapsed;
-        TableColumnsPanel.DataContext = isTable ? output : null;
+        _inseparable.UpdateLabel();
+        RefreshOutputs();
 
         Title = "Config Editor - " + (_path ?? "(new config)") + (IsChanged ? " *" : "");
     }
