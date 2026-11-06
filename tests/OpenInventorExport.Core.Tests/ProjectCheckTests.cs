@@ -25,6 +25,18 @@ public class ProjectCheckTests
         Assert.NotNull(warning);
         Assert.Contains("'Robot'", warning);
         Assert.Contains("'Engine'", warning);
+        Assert.Contains(Robot, warning);
+        Assert.Contains(Engine, warning);
+    }
+
+    [Fact]
+    public void SameNameInAnotherFolder_Warns_WithBothFullPaths()
+    {
+        const string otherRobot = @"D:\old\Robot\Robot.ipj";
+        var warning = SnapshotChecks.ProjectMismatch(new Snapshot { ProjectFile = Robot }, otherRobot);
+        Assert.NotNull(warning);
+        Assert.Contains(Robot, warning);
+        Assert.Contains(otherRobot, warning);
     }
 
     [Fact]

@@ -25,6 +25,7 @@ public static class SnapshotChecks
     /// <summary>
     /// A warning if the project active now differs from the one the snapshot was collected with, else null.
     /// Null as well when either side is unknown: nothing can be compared. Warning only, never blocks.
+    /// Names both full paths, because two projects with the same name in different folders also differ.
     /// </summary>
     public static string? ProjectMismatch(Snapshot s, string? activeProjectFile)
     {
@@ -33,8 +34,8 @@ public static class SnapshotChecks
         if (string.Equals(s.ProjectFile, activeProjectFile, StringComparison.OrdinalIgnoreCase))
             return null;
 
-        return $"WARNING: this snapshot was collected with project '{Path.GetFileNameWithoutExtension(s.ProjectFile)}', " +
-               $"but the active project is now '{Path.GetFileNameWithoutExtension(activeProjectFile)}'. " +
+        return $"WARNING: this snapshot was collected with project '{Path.GetFileNameWithoutExtension(s.ProjectFile)}' ({s.ProjectFile}), " +
+               $"but the active project is now '{Path.GetFileNameWithoutExtension(activeProjectFile)}' ({activeProjectFile}). " +
                "Drawings are looked up through the active project, so drawing exports may report NoDrawing. " +
                "Activate the right project in Inventor first.";
     }
