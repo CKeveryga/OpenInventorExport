@@ -12,8 +12,19 @@
 				"DocumentTypes": [ "Part", "SheetMetal", "Assembly" ]
 			},
 			"Outputs": [
-				{ "Format": "Xlsx", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
-				{ "Format": "Csv", "Name": "ERP_Import", "Mode": "Occurrence", "Key": "PartNumber" }
+				{ "Format": "Xlsx", "Name": "XL_Struc_PN", "Mode": "Structured", "Key": "PartNumber" },
+				{ "Format": "Xlsx", "Name": "XL_Flat_PN", "Mode": "Flat", "Key": "PartNumber" },
+				{ "Format": "Xlsx", "Name": "XL_Occ_PN", "Mode": "Occurrence", "Key": "PartNumber" },
+				{ "Format": "Csv", "Name": "CSV_Struc_PN", "Mode": "Structured", "Key": "PartNumber" },
+				{ "Format": "Csv", "Name": "CS_Flat_PN", "Mode": "Flat", "Key": "PartNumber" },
+				{ "Format": "Csv", "Name": "CSV_Occ_PN", "Mode": "Occurrence", "Key": "PartNumber" },
+
+				{ "Format": "Xlsx", "Name": "XL_Struc_FP", "Mode": "Structured", "Key": "FilePath" },
+				{ "Format": "Xlsx", "Name": "XL_Flat_FP", "Mode": "Flat", "Key": "FilePath" },
+				{ "Format": "Xlsx", "Name": "XL_Occ_FP", "Mode": "Occurrence", "Key": "FilePath" },
+				{ "Format": "Csv", "Name": "CSV_Struc_FP", "Mode": "Structured", "Key": "FilePath" },
+				{ "Format": "Csv", "Name": "CS_Flat_FP", "Mode": "Flat", "Key": "FilePath" },
+				{ "Format": "Csv", "Name": "CSV_Occ_FP", "Mode": "Occurrence", "Key": "FilePath" }
 			]
 		}
 	],
@@ -25,8 +36,9 @@
 	},
 
 	"BomColumns": [
+		{ "Name": "Item Number"},
 		{ "Name": "Part Number" },
 		{ "Name": "Description" },
-		{ "Name": "Material" }
+		{ "Name": "Vendor"}
 	]
 }
