@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<!-- The export window (open question 30): does what the CLI menu does, for people. Runs as its own
+	     program and talks to Inventor over COM, like the CLI. The add-in's button starts it.
+	     The work is in ExportWorkflow (Inventor project); this project only shows it. -->
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AssemblyName>OpenInventorExport.App</AssemblyName>
+		<RootNamespace>OpenInventorExport.App</RootNamespace>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\OpenInventorExport.Core\OpenInventorExport.Core.csproj" />
+		<ProjectReference Include="..\OpenInventorExport.Inventor\OpenInventorExport.Inventor.csproj" />
+	</ItemGroup>
+</Project>
