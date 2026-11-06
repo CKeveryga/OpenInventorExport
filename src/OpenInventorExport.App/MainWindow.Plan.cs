@@ -32,13 +32,40 @@ public partial class MainWindow
     private PlanResult? _plan;
     private ICollectionView? _planView;
 
+    /// <summary>
+    /// After the first Plan, the window re-plans by itself whenever the task, config, output folder or
+    /// snapshot changes, so the grid always shows what Run would do. Off until Plan is pressed once.
+    /// </summary>
+    private bool _autoPlan;
+    private bool _planQueued;
+    private bool _planning;
+    private bool _planAgainAfterThis;
+
     private async void OnPlan(object sender, RoutedEventArgs e)
     {
-        if (_snapshot == null || _config == null) return;
         if (string.IsNullOrWhiteSpace(OutputFolder))
         {
             MessageBox.Show(this, "Choose an output folder first.", "Plan", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
+        }
+        if (await RunPlan(automatic: false))
+        {
+            _autoPlan = true;
+            Tabs.SelectedItem = PlanTab;
+        }
+    }
+
+    /// <summary>
+    /// Plans with the current inputs and shows the result. An automatic plan reports a failure in the Plan tab
+    /// instead of a message box. Returns true when a plan is shown.
+    /// </summary>
+    private async Task<bool> RunPlan(bool automatic)
+    {
+        if (_snapshot == null || _config == null || string.IsNullOrWhiteSpace(OutputFolder)) return false;
+        if (_planning)
+        {
+            _planAgainAfterThis = true;   // inputs changed while planning: plan once more when this one ends
+            return false;
         }
 
         var snapshot = _snapshot;
@@ -46,24 +73,56 @@ public partial class MainWindow
         string outRoot = OutputFolder;
         string? only = SelectedTask;
 
-        SetBusy(true, "Planning...");
+        _planning = true;
+        SetBusy(true, automatic ? "Planning again (something changed)..." : "Planning...");
         try
         {
             // Off the window's thread: with drawing jobs it asks Inventor for the active project.
             var plan = await Task.Run(() => ExportWorkflow.Plan(snapshot, config, outRoot, only));
             ShowPlan(plan, outRoot);
-            Tabs.SelectedItem = PlanTab;
-            SetStatus("Planned. Nothing has been exported.");
+            SetStatus(automatic ? "Planned again with the new settings. Nothing has been exported."
+                                : "Planned. Nothing has been exported.");
+            return true;
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Plan", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (automatic)
+            {
+                PlanInfo.Foreground = System.Windows.Media.Brushes.DarkRed;
+                PlanInfo.Text = "Could not plan: " + ex.Message;
+            }
+            else
+            {
+                MessageBox.Show(this, ex.Message, "Plan", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             SetStatus("Plan failed.");
+            return false;
         }
         finally
         {
+            _planning = false;
             SetBusy(false);
+            if (_planAgainAfterThis)
+            {
+                _planAgainAfterThis = false;
+                RequestReplan();
+            }
         }
+    }
+
+    /// <summary>
+    /// Asks for one automatic re-plan, run once the window is idle. Several changes in a row
+    /// (e.g. loading a config also refills the task list) give a single plan.
+    /// </summary>
+    private void RequestReplan()
+    {
+        if (!_autoPlan || _planQueued) return;
+        _planQueued = true;
+        Dispatcher.BeginInvoke(async () =>
+        {
+            _planQueued = false;
+            await RunPlan(automatic: true);
+        }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void ShowPlan(PlanResult plan, string outRoot)
@@ -136,9 +195,15 @@ public partial class MainWindow
 
     /// <summary>
     /// Forgets the plan when anything it was made from changes (config, task, output folder, snapshot),
-    /// so a stale plan can never be shown as current.
+    /// so a stale plan can never be shown as current, then re-plans if Plan has been pressed before.
     /// </summary>
     private void ClearPlan()
+    {
+        ClearPlanDisplay();
+        RequestReplan();
+    }
+
+    private void ClearPlanDisplay()
     {
         if (PlanGrid == null) return;   // during InitializeComponent
         bool hadPlan = _plan != null;
@@ -149,9 +214,11 @@ public partial class MainWindow
         UnreadableGrid.ItemsSource = null;
         PlanWarnings.Visibility = Visibility.Collapsed;
         PlanInfo.Foreground = System.Windows.Media.Brushes.Gray;
-        PlanInfo.Text = hadPlan
-            ? "Something changed (config, task, output folder or snapshot). Press Plan again."
-            : "Collect or load a snapshot, then press Plan.";
+        PlanInfo.Text = _autoPlan && _snapshot != null && _config != null
+            ? "Something changed (config, task, output folder or snapshot). Planning again..."
+            : hadPlan
+                ? "Something changed (config, task, output folder or snapshot). Press Plan again."
+                : "Collect or load a snapshot, then press Plan.";
         LeftOutInfo.Text = "What each task's rules leave out, and why. Shown after Plan.";
         UnreadableInfo.Text = "Components Inventor could not read. Shown after Plan.";
         PlanTab.Header = "Plan";
