@@ -172,20 +172,32 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="300" />
+                        <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition /><RowDefinition />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="Name" />
-                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,2"
+                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,2" Width="300" HorizontalAlignment="Left"
                              Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="Root folder" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2"
-                             Text="{Binding FolderTemplate, UpdateSourceTrigger=PropertyChanged}" />
+                    <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,2" HorizontalAlignment="Left">
+                        <!-- Not focusable, so the caret stays in the text box and the token goes where it is -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="4,0,0,0">
+                            <Button Content="{}{task}" Tag="{}{task}" Focusable="False" Padding="6,0" Margin="0,0,4,0"
+                                    Click="OnInsertToken" ToolTip="The task's name" />
+                            <Button Content="{}{format}" Tag="{}{format}" Focusable="False" Padding="6,0" Margin="0,0,4,0"
+                                    Click="OnInsertToken" ToolTip="The output format in lower case: pdf, dxf, step, xlsx..." />
+                            <Button Content="{}{type}" Tag="{}{type}" Focusable="False" Padding="6,0"
+                                    Click="OnInsertToken"
+                                    ToolTip="Each file's document type: Part, SheetMetal, Assembly... Tables are written to the root folder without the {type} part." />
+                        </StackPanel>
+                        <TextBox x:Name="RootFolderBox" Width="300" HorizontalAlignment="Left"
+                                 Text="{Binding FolderTemplate, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
                 </Grid>
                 <TextBlock Foreground="Gray" Margin="0,4,0,0"
-                           Text="Root folder tokens: {task}, {format}, {type}. Default {task}." />
+                           Text="Click a token to insert it where the cursor is. Use / for nested folders. Default {task}." />
 
                 <TextBlock Style="{StaticResource Heading}" Text="Selection (which files this task exports and lists in its tables)" />
                 <Grid>

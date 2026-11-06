@@ -231,6 +231,21 @@ public partial class MainWindow : Window
         RebuildPageList(selectIndex: index + 1);
     }
 
+    /// <summary>Inserts the clicked token ({task}, {format}, {type}) into Root folder at the cursor, replacing any selected text.</summary>
+    private void OnInsertToken(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string token })
+            InsertAtCursor(RootFolderBox, token);
+    }
+
+    private static void InsertAtCursor(TextBox box, string text)
+    {
+        int caret = box.SelectionStart;
+        box.SelectedText = text;
+        box.CaretIndex = caret + text.Length;
+        box.Focus();
+    }
+
     /// <summary>A deep copy (through JSON), so the copy shares no lists with the original.</summary>
     private static T Clone<T>(T value) =>
         System.Text.Json.JsonSerializer.Deserialize<T>(System.Text.Json.JsonSerializer.Serialize(value))!;

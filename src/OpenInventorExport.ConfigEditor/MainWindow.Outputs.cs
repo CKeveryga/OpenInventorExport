@@ -76,7 +76,6 @@ public partial class MainWindow
         IniRow.Visibility = OutputRules.UsesIniFile(o.Format) ? Visibility.Visible : Visibility.Collapsed;
         NameRow.Visibility = ModeRow.Visibility = KeyRow.Visibility = ColumnsRow.Visibility =
             table ? Visibility.Visible : Visibility.Collapsed;
-
         if (table)
         {
             _mode.Load(() => o.Mode, v => o.Mode = v);
@@ -102,7 +101,10 @@ public partial class MainWindow
             $"This output has settings a {o.Format} cannot use: {string.Join("; ", leftovers)}.";
 
         // Same token rules as ExportPlanner ({type} stays as it is: it depends on each file).
-        string root = (task.FolderTemplate ?? "")
+        // A table leaves out the {type} levels of the root folder (it covers every document type).
+        string template = task.FolderTemplate ?? "";
+        if (OutputRules.IsTable(o.Format)) template = ExportPlanner.WithoutTypeLevels(template);
+        string root = template
             .Replace("{task}", task.Name)
             .Replace("{format}", o.Format.ToString().ToLowerInvariant());
         string folder = (string.IsNullOrWhiteSpace(o.Folder) ? root : Path.Combine(root, o.Folder.Trim()))
