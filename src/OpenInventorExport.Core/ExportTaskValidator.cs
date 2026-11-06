@@ -44,6 +44,8 @@ public static class ExportTaskValidator
             string normal = folder.Replace('\\', '/');
             if (Path.IsPathRooted(folder) || normal.Split('/').Contains(".."))
                 problems.Add($"Task '{task.Name}': output Folder '{o.Folder}' must be a relative path without '..'.");
+            if (ForbiddenIn(folder) is { } badFolder)
+                problems.Add($"Task '{task.Name}': output Folder '{o.Folder}' has characters Windows does not allow in a folder name: {badFolder}.");
 
             if (!table && (o.Columns.Count > 0 || !string.IsNullOrWhiteSpace(o.Name) || o.Mode != null || o.Key != null))
                 problems.Add($"Task '{task.Name}': Name, Columns, Mode and Key only apply to Csv and Xlsx outputs, not {o.Format}.");
@@ -59,6 +61,8 @@ public static class ExportTaskValidator
         string template = task.FolderTemplate ?? "";
         if (Path.IsPathRooted(template) || template.Contains(".."))
             problems.Add("FolderTemplate must be a relative path without '..'.");
+        if (ForbiddenIn(template) is { } badTemplate)
+            problems.Add($"Task '{task.Name}': FolderTemplate '{template}' has characters Windows does not allow in a folder name: {badTemplate}.");
         foreach (Match m in Regex.Matches(template, @"\{([^}]*)\}"))
             if (!KnownTokens.Contains(m.Groups[1].Value))
                 problems.Add($"Unknown token {m.Value} in FolderTemplate.");
@@ -84,5 +88,20 @@ public static class ExportTaskValidator
         problems.AddRange(BomStructurePolicy.Validate(task.Selection.BomStructures, $"Task '{task.Name}'"));
 
         return problems;
+    }
+
+    // Characters Windows does not allow in a file or folder name. A fixed list (not Path.GetInvalidFileNameChars)
+    // so the result is the same on every platform. '/' and '\' are allowed: they separate nested folders.
+    private static readonly char[] ForbiddenFolderChars = { '<', '>', ':', '"', '|', '?', '*' };
+
+    /// <summary>The forbidden characters found in a folder path, e.g. "'?', '*'", or null when there are none.</summary>
+    private static string? ForbiddenIn(string path)
+    {
+        var bad = path
+            .Where(c => ForbiddenFolderChars.Contains(c) || char.IsControl(c))
+            .Distinct()
+            .Select(c => char.IsControl(c) ? $"control character {(int)c}" : $"'{c}'")
+            .ToList();
+        return bad.Count == 0 ? null : string.Join(", ", bad);
     }
 }
