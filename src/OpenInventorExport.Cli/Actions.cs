@@ -143,7 +143,9 @@ internal static class Actions
             Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
         }
 
-        ExportTables.WriteTables(snapshot, config, tasks, tableJobs, results);
+        var tableResults = ExportTables.Write(snapshot, config, tasks, tableJobs, r =>
+            Console.WriteLine($"[{r.Status}] {r.TaskName}: table {r.OutputPath} {r.Detail}"));
+        results.AddRange(tableResults);
 
         // UTF-8 with BOM so Excel opens the CSV correctly.
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));

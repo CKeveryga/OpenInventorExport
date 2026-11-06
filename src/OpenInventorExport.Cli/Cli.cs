@@ -18,7 +18,7 @@ internal static class Cli
         Options (plan, export, props, bom):
           --from <snapshot.json>      Use a saved snapshot instead of collecting from Inventor.
           --config <file.json>        Config file. Default: config/export.config.json.
-          --only <task>               (plan/export) run just that task and its package.
+          --only <task>               (plan/export) run just that task.
 
         outDir defaults to ./output. Commands that collect need Inventor running
         with the assembly as the active document.
