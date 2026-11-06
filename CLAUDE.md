@@ -46,10 +46,10 @@
 **Done in the 2026-11-05 session:** the CLI split (`Actions.cs`, `Interactive.cs`, `Cli.cs`, one-line `Program.cs`); table writing moved into Core as `ExportTables.Write(snapshot, config, tasks, tableJobs, onResult)` with five tests (CSV with BOM, XLSX, conflict job, failing table does not stop later ones, callback order); stale "package" wording removed (usage text, `ExportPlanner.SelectedFiles` comment); the clean file name in tables is applied (both writers strip the `<member>` suffix, tested in `TableOutputTests`); tagged `v0.6.2`.
 
 **Next up (suggested order, owner to confirm each design before code is written):**
-1. **Add-in launcher and a first UI, before the trial ends (needs Inventor, owner tests in the trial).** Design is open question 30; settle it first, with an example the owner can recognize, then build in small steps. Suggested shape (a recommendation, not decided): a thin add-in with a ribbon button that starts the UI/CLI out-of-process (the existing architecture rule), and a small window that does what the interactive menu does today: pick config and output folder, collect, plan, run, show the results. A full config editor is not part of this first step.
-2. **Held Inventor tests, run through the UI once it exists** (list in section 7 "Not yet verified"): iPart / iAssembly members, non-primary model states, picture-valued properties (`Part Icon`), Area/Volume storage, built-in numbers in millimetre documents.
-3. **After the add-in (pure Core, can be done after the trial):** `Remainder` selection (open question 17); ERP-ready table output (open question 31); zip (open question 19).
-4. Config editor (WPF), `net48` build and testing, installer.
+1. Config editor (WPF), `net48` build and testing, installer.
+2. **Add-in launcher and a first UI, before the trial ends (needs Inventor, owner tests in the trial).** Design is open question 30; settle it first, with an example the owner can recognize, then build in small steps. Suggested shape (a recommendation, not decided): a thin add-in with a ribbon button that starts the UI/CLI out-of-process (the existing architecture rule), and a small window that does what the interactive menu does today: pick config and output folder, collect, plan, run, show the results. A full config editor is not part of this first step.
+3. **Held Inventor tests, run through the UI once it exists** (list in section 7 "Not yet verified"): iPart / iAssembly members, non-primary model states, picture-valued properties (`Part Icon`), Area/Volume storage, built-in numbers in millimetre documents.
+4. `Remainder` selection (open question 17); ERP-ready table output (open question 31); zip (open question 19).
 
 ---
 
@@ -535,10 +535,10 @@ Document types the traverser emits are the list in `DocumentTypes` (Weldment is 
 | 5 | Rules engine | **Done in Core and verified against Inventor** for BOM structure rules, exclusion report, Content Center, unresolved policy (Block and Warn) and numeric filters with units. Occurrence-level rules and `Remainder` not built |
 | 6a | XLSX writer; table outputs (Csv/Xlsx) with folders, names, columns, per-output rollup; `--only` | **Done** (v0.6) |
 | 6c | CLI split into files; table writing moved into Core (`ExportTables`); stale wording removed | **Done** (v0.6.2) |
-| 8a | **Add-in launcher + first UI window** | **Next. Must be built before the Inventor trial ends (~2026-11-27). Design: open question 30** |
+| 8 | Config Editor UI (WPF) | Later |
+| 8a | **Add-in launcher + first UI window** | **Must be built before the Inventor trial ends (~2026-11-27). Design: open question 30** |
 | 8b | Held Inventor tests, run through the UI | After 8a, inside the trial |
 | 6b | Zip option (zips a task's root folder) | Deferred (open question 19) |
-| 8 | Config Editor UI (WPF) | Later |
 | 9 | Polish, `net48` build/testing on 2023/2024, installer, release | Later |
 
 Resist building a big UI early; a good config *format* first. The first UI (8a) is a small runner, not an editor.
