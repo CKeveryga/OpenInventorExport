@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<!-- Config editor: a WPF window for config files. References Core only (no Inventor), so it runs without Inventor. -->
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\OpenInventorExport.Core\OpenInventorExport.Core.csproj" />
+	</ItemGroup>
+</Project>
