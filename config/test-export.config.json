@@ -1,89 +1,369 @@
 {
-	"SchemaVersion": 1,
-
-	"Unresolved": "Warn",
-
-	"Tasks": [
-		{
-			"Name": "SheetMetalDrawings",
-			"FolderTemplate": "{task}",
-			"Selection": {
-				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "SheetMetal" ],
-				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
-				"ContentCenter": "Exclude"
-			},
-			"Outputs": [
-				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne", "Folder": "PDF" },
-				{ "Format": "Dwg", "Source": "Drawing", "IniFile": "dwg-one-sheet.ini" },
-				{ "Format": "Dxf", "Source": "Drawing", "IniFile": "dxf-one-sheet.ini" },
-				{ "Format": "Xlsx", "Columns": [ { "Name": "Part Number" }, { "Name": "Material" } ] },
-				{ "Format": "Csv" }
-			]
-		},
-				{
-			"Name": "PartDrawings",
-			"FolderTemplate": "{task}",
-			"Selection": {
-				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Part" ],
-				"BomStructures": [ { "Structure": "Purchased", "Children": "Include" }, { "Structure": "Reference", "Children": "Exclude" } ],
-				"ContentCenter": "Include"
-			},
-			"Outputs": [
-				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" },
-				{ "Format": "Csv" }
-			]
-		},
-		{
-			"Name": "AssemblyDrawings",
-			"FolderTemplate": "{task}",
-			"Selection": {
-				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Assembly"],
-				"ContentCenter": "Exclude"
-			},
-			"Outputs": [
-				{ "Format": "Pdf", "Source": "Drawing", "PdfSheets": "AllInOne" }
-			]
-		},
-		{
-			"Name": "StepFiles",
-			"FolderTemplate": "{task}",
-			"Selection": {
-				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Part" ],
-				"ContentCenter": "Exclude",
-				"Filters": [
-					{ "Property": "Designer", "Operator": "Contains", "Value": "yuany" },
-					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "ABC" },
-					{ "Set": "Inventor User Defined Properties", "Property": "Length", "Operator": "LessThan", "Value": "200" },
-					{ "Property": "Vendor", "Operator": "NotEquals", "Value": "DEF" }]
-			},
-			"Outputs": [
-				{ "Format": "step", "Source": "Model" },
-				{ "Format": "Csv", "Columns": [ { "Name": "Part Number" }, { "Name": "Designer" } ]}
-			]
-		}
-	],
-
-	"Properties": [
-		{
-			"Set": "Inventor User Defined Properties",
-			"Name": "Finish",
-			"DataType": "Text",
-			"Required": true
-		}
-	],
-
-	"Rollup": {
-		"Mode": "Occurrence",
-		"IncludeAssemblies": false
-	},
-
-	"BomColumns": [
-		{ "Name": "Part Number" },
-		{ "Name": "Description" },
-		{ "Name": "Material" }
-	]
+  "SchemaVersion": 1,
+  "Tasks": [
+    {
+      "Name": "SheetMetalDrawings",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [
+          "SheetMetal"
+        ],
+        "Filters": [],
+        "BomStructures": [
+          {
+            "Structure": "Purchased",
+            "Include": null,
+            "Children": "Include"
+          },
+          {
+            "Structure": "Reference",
+            "Include": null,
+            "Children": "Exclude"
+          }
+        ],
+        "ContentCenter": "Exclude"
+      },
+      "Outputs": [
+        {
+          "Format": "Pdf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "PDF",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Dwg",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": "dwg-one-sheet.ini",
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Dxf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": "dxf-one-sheet.ini",
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [
+            {
+              "Name": "Part Number",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Material",
+              "Set": "Design Tracking Properties"
+            }
+          ],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "{task}"
+    },
+    {
+      "Name": "PartDrawings",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [
+          "Part"
+        ],
+        "Filters": [],
+        "BomStructures": [
+          {
+            "Structure": "Purchased",
+            "Include": null,
+            "Children": "Include"
+          },
+          {
+            "Structure": "Reference",
+            "Include": null,
+            "Children": "Exclude"
+          }
+        ],
+        "ContentCenter": "Include"
+      },
+      "Outputs": [
+        {
+          "Format": "Pdf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "{task}"
+    },
+    {
+      "Name": "AssemblyDrawings",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [
+          "Assembly"
+        ],
+        "Filters": [],
+        "BomStructures": [],
+        "ContentCenter": "Exclude"
+      },
+      "Outputs": [
+        {
+          "Format": "Pdf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "{task}"
+    },
+    {
+      "Name": "StepFiles",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [
+          "Part"
+        ],
+        "Filters": [
+          {
+            "Property": "Designer",
+            "Operator": "Contains",
+            "Value": "yuany",
+            "Set": "Design Tracking Properties"
+          },
+          {
+            "Property": "Vendor",
+            "Operator": "NotEquals",
+            "Value": "ABC",
+            "Set": "Design Tracking Properties"
+          },
+          {
+            "Property": "Length",
+            "Operator": "LessThan",
+            "Value": "200",
+            "Set": "Inventor User Defined Properties"
+          },
+          {
+            "Property": "Vendor",
+            "Operator": "NotEquals",
+            "Value": "DEF",
+            "Set": "Design Tracking Properties"
+          }
+        ],
+        "BomStructures": [],
+        "ContentCenter": "Exclude"
+      },
+      "Outputs": [
+        {
+          "Format": "Step",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [
+            {
+              "Name": "Part Number",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Designer",
+              "Set": "Design Tracking Properties"
+            }
+          ],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "{task}"
+    },
+    {
+      "Name": "NewTask",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [],
+        "Filters": [],
+        "BomStructures": [],
+        "ContentCenter": "Include"
+      },
+      "Outputs": [
+        {
+          "Format": "Step",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Pdf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Dwf",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "Gina",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "Hello",
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "Hello/\\wdcdc\\efvdwv",
+          "Name": "Hello",
+          "Columns": [
+            {
+              "Name": "Part Number",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Designer",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Document SubType",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Document SubType Name",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Material",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Description",
+              "Set": "Design Tracking Properties"
+            }
+          ],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "{task}"
+    }
+  ],
+  "Properties": [
+    {
+      "Name": "Finish",
+      "DataType": "Text",
+      "Required": true,
+      "AppliesTo": [
+        "Assembly"
+      ],
+      "Set": "Inventor User Defined Properties"
+    }
+  ],
+  "Rollup": {
+    "Mode": "Structured",
+    "IncludeRoot": false,
+    "IncludeAssemblies": true,
+    "ExcludeSuppressed": true,
+    "ContentCenter": "Include",
+    "BomStructures": [],
+    "Inseparable": null,
+    "Key": "PartNumber"
+  },
+  "BomColumns": [
+    {
+      "Name": "Part Number",
+      "Set": "Design Tracking Properties"
+    },
+    {
+      "Name": "Description",
+      "Set": "Design Tracking Properties"
+    },
+    {
+      "Name": "Material",
+      "Set": "Design Tracking Properties"
+    }
+  ],
+  "Unresolved": "Warn"
 }

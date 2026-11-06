@@ -62,6 +62,23 @@ public static class ExportConfigJson
     /// <summary>Parses and validates. Throws InvalidDataException listing every problem found.</summary>
     public static ExportConfig FromJson(string json)
     {
+        var config = Parse(json);
+
+        var problems = Validate(config);
+        if (problems.Count > 0)
+            throw new InvalidDataException("Config file has problems: " + string.Join(" ", problems));
+
+        return config;
+    }
+
+    /// <summary>
+    /// Reads the JSON strictly (unknown names, bad enum values and a wrong SchemaVersion throw
+    /// InvalidDataException) but does NOT check the content. Use Validate for that.
+    /// For the config editor, which must open a file that has problems so they can be fixed.
+    /// Everything else should call FromJson.
+    /// </summary>
+    public static ExportConfig Parse(string json)
+    {
         ExportConfig? config;
         try
         {
@@ -81,6 +98,15 @@ public static class ExportConfigJson
                     ? $"Config file has no SchemaVersion. Add \"SchemaVersion\": {ExportConfig.CurrentSchemaVersion}."
                     : $"Config has schema version {config.SchemaVersion}; this build reads version {ExportConfig.CurrentSchemaVersion}.");
 
+        return config;
+    }
+
+    /// <summary>
+    /// Checks the content of a config and returns every problem found (empty list = valid).
+    /// Never throws for a bad config. Does not check that ini files exist (that needs the config's folder).
+    /// </summary>
+    public static List<string> Validate(ExportConfig config)
+    {
         var problems = new List<string>();
 
         if (config.Tasks.Count == 0)
@@ -103,10 +129,7 @@ public static class ExportConfigJson
                     .Select(p => $"Task '{task.Name}' {o.Format} output: {p}"));
         problems.AddRange(BomStructurePolicy.Validate(config.Rollup.BomStructures, "Rollup"));
 
-        if (problems.Count > 0)
-            throw new InvalidDataException("Config file has problems: " + string.Join(" ", problems));
-
-        return config;
+        return problems;
     }
 
     // Only the sets the traverser reads. Add new sets here when the traverser learns them.

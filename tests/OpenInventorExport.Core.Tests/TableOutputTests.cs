@@ -189,11 +189,45 @@ public class TableOutputTests
     }
 
     [Fact]
-    public void TypeTokenWithATable_IsRejected()
+    public void TypeTokenWithATable_IsAllowed()
     {
         var task = SheetMetalX(Drw(ExportFormat.Pdf), Tbl(ExportFormat.Csv));
         task.FolderTemplate = "{task}/{type}";
-        Assert.Contains(ExportTaskValidator.Validate(task), p => p.Contains("{type}"));
+        Assert.Empty(ExportTaskValidator.Validate(task));
+    }
+
+    [Fact]
+    public void TypeToken_PutsFilesInATypeFolder_ButTheTableInTheFolderAboveIt()
+    {
+        var task = SheetMetalX(Drw(ExportFormat.Pdf, "PDF"), Tbl(ExportFormat.Csv, "PDF"));
+        task.FolderTemplate = "{task}/{type}";
+
+        var file = Assert.Single(ExportPlanner.Plan(Sample(), task, @"C:\out"));
+        var table = Assert.Single(ExportPlanner.PlanTables(new[] { task }, @"C:\out"));
+
+        Assert.Equal(Path.Combine(@"C:\out", "Pkg", "SheetMetal", "PDF", "Plate.pdf"), file.OutputPath);
+        Assert.Equal(Path.Combine(@"C:\out", "Pkg", "PDF", "Pkg.csv"), table.OutputPath);
+    }
+
+    [Theory]
+    [InlineData("{task}/{type}", "{task}")]
+    [InlineData("{task}/{type}/{format}", "{task}/{format}")]
+    [InlineData(@"{task}\{type}", "{task}")]
+    [InlineData("{type}", "")]
+    [InlineData("{task}_{type}/out", "out")]
+    [InlineData("{task}/{format}", "{task}/{format}")]
+    public void TableFolder_LeavesOutEveryLevelWithType(string template, string expected) =>
+        Assert.Equal(expected, ExportPlanner.WithoutTypeLevels(template));
+
+    [Fact]
+    public void TypeOnlyTemplate_PutsTheTableInTheOutputRoot()
+    {
+        var task = SheetMetalX(Drw(ExportFormat.Pdf), Tbl(ExportFormat.Xlsx));
+        task.FolderTemplate = "{type}";
+
+        var table = Assert.Single(ExportPlanner.PlanTables(new[] { task }, @"C:\out"));
+
+        Assert.Equal(Path.Combine(@"C:\out", "Pkg.xlsx"), table.OutputPath);
     }
 
     // ----------------------------------------------------------- config

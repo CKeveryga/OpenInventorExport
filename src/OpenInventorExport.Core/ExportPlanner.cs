@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -121,7 +121,7 @@ public static class ExportPlanner
         {
             foreach (var output in task.Outputs.Where(o => IsTable(o.Format)))
             {
-                string root = task.FolderTemplate
+                string root = WithoutTypeLevels(task.FolderTemplate)
                     .Replace("{task}", Clean(task.Name))
                     .Replace("{format}", output.Format.ToString().ToLowerInvariant())
                     .Replace('/', Path.DirectorySeparatorChar);
@@ -280,6 +280,14 @@ public static class ExportPlanner
             .Replace("{type}", Clean(comp.DocumentType));
         return Path.Combine(root.Replace('/', Path.DirectorySeparatorChar), SubFolder(output));
     }
+
+    /// <summary>
+    /// The FolderTemplate for a table: a table covers every document type, so each folder level that contains
+    /// {type} is left out. "{task}/{type}" gives "{task}"; "{task}/{type}/{format}" gives "{task}/{format}";
+    /// "{type}" alone gives "" (the output root).
+    /// </summary>
+    public static string WithoutTypeLevels(string template) =>
+        string.Join("/", template.Replace('\\', '/').Split('/').Where(level => !level.Contains("{type}")));
 
     private static string SubFolder(OutputSpec output) =>
         (output.Folder ?? "").Trim().Replace('/', Path.DirectorySeparatorChar);

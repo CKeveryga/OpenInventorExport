@@ -1,0 +1,393 @@
+<Window x:Class="OpenInventorExport.ConfigEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:OpenInventorExport.ConfigEditor"
+        Title="Config Editor" Width="1000" Height="720"
+        Closing="OnClosing">
+    <Window.Resources>
+        <local:CommaListConverter x:Key="CommaList" />
+        <local:PropertyNamesConverter x:Key="PropertyNames" />
+
+        <!-- Property name cell: shows the name; while editing, a drop-down of known names that also accepts typing
+             (it fills in as you type). Suggestions follow the row's Set. -->
+        <DataTemplate x:Key="PropertyNameCell">
+            <TextBlock Text="{Binding Name}" Margin="2,0" />
+        </DataTemplate>
+        <local:FilterValueConverter x:Key="FilterValue" />
+        <!-- The same drop-down for a filter row, whose name field is called Property -->
+        <DataTemplate x:Key="FilterPropertyCell">
+            <TextBlock Text="{Binding Property}" Margin="2,0" />
+        </DataTemplate>
+        <DataTemplate x:Key="FilterPropertyEditor">
+            <ComboBox IsEditable="True"
+                      ItemsSource="{Binding Set, Converter={StaticResource PropertyNames}}"
+                      Text="{Binding Property, UpdateSourceTrigger=PropertyChanged}" />
+        </DataTemplate>
+        <DataTemplate x:Key="PropertyNameEditor">
+            <ComboBox IsEditable="True"
+                      ItemsSource="{Binding Set, Converter={StaticResource PropertyNames}}"
+                      Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+        </DataTemplate>
+        <Style TargetType="TextBlock" x:Key="Label">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="FormLabel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Width" Value="90" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Hint">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Foreground" Value="Gray" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Heading">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8">
+            <Button Content="New" Width="80" Margin="0,0,4,0" Click="OnNew" />
+            <Button Content="Open..." Width="80" Margin="0,0,4,0" Click="OnOpen" />
+            <Button Content="Save" Width="80" Margin="0,0,4,0" Click="OnSave" />
+            <Button Content="Save as..." Width="80" Click="OnSaveAs" />
+        </StackPanel>
+
+        <!-- Problems panel -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="8" Height="140">
+            <TextBlock DockPanel.Dock="Top" x:Name="ProblemsHeading" FontWeight="Bold" Margin="0,0,0,4" />
+            <ListBox x:Name="ProblemsList" />
+        </DockPanel>
+
+        <Grid Margin="8,0,8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="204" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: General + tasks -->
+            <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Add task" Width="96" Margin="0,0,4,0" Click="OnAddTask" />
+                        <Button Content="Remove task" Width="96" Click="OnRemoveTask" />
+                    </StackPanel>
+                    <Button Content="Duplicate task" Width="96" Margin="0,4,0,0" HorizontalAlignment="Left" Click="OnDuplicateTask" />
+                </StackPanel>
+                <ListBox x:Name="PageList" SelectionChanged="OnPageSelected" />
+            </DockPanel>
+
+            <!-- Right: General page -->
+            <ScrollViewer Grid.Column="1" x:Name="GeneralPage" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Heading}" Text="Unreadable components" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Label}" Text="Unresolved" />
+                        <ComboBox Width="120" ItemsSource="{x:Static local:Choices.UnresolvedPolicies}"
+                                  SelectedItem="{Binding Unresolved}" />
+                        <TextBlock Style="{StaticResource Label}" Margin="8,0,0,0" Foreground="Gray"
+                                   Text="Block: exports refuse to run. Warn: export what can be read." />
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Rollup (the bom command; fallback Mode and Key for tables)" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="160" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="Mode" />
+                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,2" ItemsSource="{x:Static local:Choices.RollupModes}"
+                                  SelectedItem="{Binding Rollup.Mode}" />
+                        <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource Label}" Text="Key" />
+                        <ComboBox Grid.Row="0" Grid.Column="4" Margin="0,2" ItemsSource="{x:Static local:Choices.RollupKeys}"
+                                  SelectedItem="{Binding Rollup.Key}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="Content Center" />
+                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{x:Static local:Choices.ContentCenterModes}"
+                                  SelectedItem="{Binding Rollup.ContentCenter}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource Label}" Text="Inseparable" />
+                        <ComboBox Grid.Row="1" Grid.Column="4" Margin="0,2" x:Name="InseparableChoice" />
+                        <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4" Content="Include assemblies"
+                                  IsChecked="{Binding Rollup.IncludeAssemblies}" />
+                        <CheckBox Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="2" Margin="0,4" Content="Include root"
+                                  IsChecked="{Binding Rollup.IncludeRoot}" />
+                        <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4" Content="Exclude suppressed"
+                                  IsChecked="{Binding Rollup.ExcludeSuppressed}" />
+                    </Grid>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (for the bom command)" />
+                    <local:BomRulesTable x:Name="RollupBomRules" />
+
+                    <TextBlock Style="{StaticResource Heading}" Text="BOM columns (default columns for bom and for tables)" />
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                            <Button Content="▲" Width="28" Margin="0,0,0,4" ToolTip="Move the selected column up" Click="OnBomColumnUp" />
+                            <Button Content="▼" Width="28" ToolTip="Move the selected column down" Click="OnBomColumnDown" />
+                        </StackPanel>
+                        <DataGrid x:Name="BomColumnsGrid" ItemsSource="{Binding BomColumns}" AutoGenerateColumns="False"
+                                  MinHeight="80" MaxHeight="200" CanUserAddRows="True" CanUserDeleteRows="True"
+                                  HeadersVisibility="Column" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridComboBoxColumn Header="Set" Width="240" ItemsSource="{x:Static local:Choices.PropertySets}"
+                                                        SelectedItemBinding="{Binding Set}" />
+                                <DataGridTemplateColumn Header="Name" Width="*"
+                                                        CellTemplate="{StaticResource PropertyNameCell}"
+                                                        CellEditingTemplate="{StaticResource PropertyNameEditor}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Property check (the props command; selects nothing)" />
+                    <DataGrid ItemsSource="{Binding Properties}" AutoGenerateColumns="False" MinHeight="80" MaxHeight="200"
+                              CanUserAddRows="True" CanUserDeleteRows="True" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridComboBoxColumn Header="Set" Width="240" ItemsSource="{x:Static local:Choices.PropertySets}"
+                                                    SelectedItemBinding="{Binding Set}" />
+                            <DataGridTemplateColumn Header="Name" Width="*"
+                                                    CellTemplate="{StaticResource PropertyNameCell}"
+                                                    CellEditingTemplate="{StaticResource PropertyNameEditor}" />
+                            <DataGridComboBoxColumn Header="Type" Width="90" ItemsSource="{x:Static local:Choices.DataTypes}"
+                                                    SelectedItemBinding="{Binding DataType}" />
+                            <DataGridCheckBoxColumn Header="Required" Width="70" Binding="{Binding Required}" />
+                            <DataGridTemplateColumn Header="Applies to (none ticked = all)" Width="1.5*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="2,0"
+                                                   Text="{Binding AppliesTo, Converter={StaticResource CommaList}, ConverterParameter=(all)}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <local:DocumentTypePicker Types="{Binding AppliesTo}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Foreground="Gray" Margin="0,4,0,0"
+                               Text="Rows: click the empty last row to add one; select a row and press Delete to remove it." />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Right: Task page. Name and root folder on top; below them two tabs: Selection and Outputs -->
+            <DockPanel Grid.Column="1" x:Name="TaskPage" Visibility="Collapsed">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition /><RowDefinition /><RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="Name" />
+                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,2" Width="300" HorizontalAlignment="Left"
+                             Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="Root folder" />
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="RootFolderBox" Width="300" HorizontalAlignment="Left" Margin="0,2"
+                             Text="{Binding FolderTemplate, UpdateSourceTrigger=PropertyChanged}" />
+                    <!-- Token buttons below the box. Not focusable, so the caret stays in the text box and the token goes where it is -->
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,2,0,0">
+                        <Button Content="{}{task}" Tag="{}{task}" Focusable="False" Padding="6,0" Margin="0,0,4,0"
+                                Click="OnInsertToken" ToolTip="The task's name" />
+                        <Button Content="{}{format}" Tag="{}{format}" Focusable="False" Padding="6,0" Margin="0,0,4,0"
+                                Click="OnInsertToken" ToolTip="The output format in lower case: pdf, dxf, step, xlsx..." />
+                        <Button Content="{}{type}" Tag="{}{type}" Focusable="False" Padding="6,0"
+                                Click="OnInsertToken"
+                                ToolTip="Each file's document type: Part, SheetMetal, Assembly... Tables are written to the root folder without the {type} part." />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Foreground="Gray" Margin="0,4,0,0"
+                           Text="Click a token to insert it where the cursor is. Use / for nested folders. Default {task}." />
+            </StackPanel>
+
+            <TabControl x:Name="TaskTabs">
+            <TabItem Header="Selection">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                <TextBlock Foreground="Gray" Margin="0,0,0,6" Text="Which files this task exports and lists in its tables." />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition /><RowDefinition /><RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="Scope" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,2" ItemsSource="{x:Static local:Choices.Scopes}"
+                              SelectedItem="{Binding Selection.Scope}" />
+                    <TextBlock Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" Foreground="Gray" VerticalAlignment="Center"
+                               Text="AllUniqueFiles: every file in the assembly. TopLevelOnly: the open assembly itself." />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="Content Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{x:Static local:Choices.ContentCenterModes}"
+                              SelectedItem="{Binding Selection.ContentCenter}" />
+                    <TextBlock Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" Foreground="Gray" VerticalAlignment="Center"
+                               Text="Include: all parts. Exclude: leave Content Center parts out. Only: just those." />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Document types" />
+                    <local:DocumentTypePicker Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4"
+                                              Types="{Binding Selection.DocumentTypes}" />
+                </Grid>
+                <TextBlock Foreground="Gray" Text="Document types: none ticked = all types." />
+
+                <TextBlock Style="{StaticResource Heading}" Text="Filters (a file is selected only if it passes every filter)" />
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                        <Button Content="▲" Width="28" Margin="0,0,0,4" ToolTip="Move the selected filter up" Click="OnFilterUp" />
+                        <Button Content="▼" Width="28" ToolTip="Move the selected filter down" Click="OnFilterDown" />
+                    </StackPanel>
+                    <DataGrid x:Name="FiltersGrid" ItemsSource="{Binding Selection.Filters}" AutoGenerateColumns="False"
+                              MinHeight="60" MaxHeight="200" CanUserAddRows="True" CanUserDeleteRows="True"
+                              HeadersVisibility="Column" SelectionMode="Single" CellEditEnding="OnFilterCellEditEnding">
+                        <DataGrid.Columns>
+                            <DataGridComboBoxColumn Header="Set" Width="220" ItemsSource="{x:Static local:Choices.PropertySets}"
+                                                    SelectedItemBinding="{Binding Set}" />
+                            <DataGridTemplateColumn Header="Property" Width="*"
+                                                    CellTemplate="{StaticResource FilterPropertyCell}"
+                                                    CellEditingTemplate="{StaticResource FilterPropertyEditor}" />
+                            <DataGridComboBoxColumn Header="Operator" Width="140" ItemsSource="{x:Static local:Choices.FilterOperators}"
+                                                    SelectedItemBinding="{Binding Operator}" />
+                            <DataGridTemplateColumn Header="Value" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="2,0" Text="{Binding Converter={StaticResource FilterValue}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Value, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding Converter={StaticResource FilterValue}, ConverterParameter=enabled}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+                <TextBlock Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap" x:Name="FiltersNote" />
+
+                <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (which assemblies, and what inside them, this task selects)" />
+                <local:BomRulesTable x:Name="TaskBomRules" />
+            </StackPanel>
+            </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Outputs">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                <TextBlock Foreground="Gray" Margin="0,0,0,6" Text="What this task produces, each in an optional subfolder of the root folder." />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ListBox x:Name="OutputsList" Grid.Column="0" MinHeight="90" MaxHeight="200" FontFamily="Consolas"
+                             SelectionChanged="OnOutputSelected" />
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <Button x:Name="AddOutputButton" Content="Add ▼" Width="100" Margin="0,0,0,4" Click="OnAddOutput" />
+                        <Button x:Name="DuplicateOutputButton" Content="Duplicate ▼" Width="100" Margin="0,0,0,4" Click="OnDuplicateOutput" />
+                        <Button Content="Remove" Width="100" Margin="0,0,0,4" Click="OnRemoveOutput" />
+                        <Button Content="Move up" Width="100" Margin="0,0,0,4" Click="OnMoveOutputUp" />
+                        <Button Content="Move down" Width="100" Click="OnMoveOutputDown" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- The selected output: only the settings its format uses are shown -->
+                <Border x:Name="OutputForm" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,8,0,8"
+                        Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="OutputFormTitle" FontWeight="Bold" Margin="0,0,0,6" />
+
+                        <StackPanel x:Name="OutputFixPanel" Orientation="Horizontal" Margin="0,0,0,6" Visibility="Collapsed">
+                            <TextBlock x:Name="OutputFixText" Foreground="DarkRed" VerticalAlignment="Center"
+                                       TextWrapping="Wrap" MaxWidth="520" />
+                            <Button Content="Fix it" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Center" Click="OnFixOutput" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="SourceRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Source" />
+                            <ComboBox x:Name="SourceChoice" Width="160" ItemsSource="{x:Static local:Choices.Sources}"
+                                      SelectedItem="{Binding Source}" />
+                            <TextBlock x:Name="SourceFixed" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="SheetsRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Sheets" />
+                            <ComboBox Width="160" ItemsSource="{x:Static local:Choices.PdfSheetModes}"
+                                      SelectedItem="{Binding PdfSheets}" />
+                            <TextBlock Style="{StaticResource Hint}" Text="AllInOne: every sheet in one PDF. FirstOnly: just sheet 1." />
+                        </StackPanel>
+
+                        <StackPanel x:Name="IniRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Ini file" />
+                            <TextBox Width="300" Text="{Binding IniFile, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Content="Browse..." Margin="4,0,0,0" Padding="6,0" Click="OnBrowseIni" />
+                            <TextBlock Style="{StaticResource Hint}" Text="Relative to the config file's folder, or a full path." />
+                        </StackPanel>
+
+                        <StackPanel x:Name="NameRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Name" />
+                            <TextBox Width="160" Text="{Binding Name, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock x:Name="NameHint" Style="{StaticResource Hint}" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Folder" />
+                            <TextBox Width="160" Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock x:Name="FolderHint" Style="{StaticResource Hint}" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="ModeRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Mode" />
+                            <ComboBox x:Name="ModeChoice" Width="220" />
+                            <TextBlock Style="{StaticResource Hint}" Text="Flat: totals. Structured: per parent. Occurrence: one line per placed item." />
+                        </StackPanel>
+
+                        <StackPanel x:Name="KeyRow" Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Style="{StaticResource FormLabel}" Text="Key" />
+                            <ComboBox x:Name="KeyChoice" Width="220" />
+                            <TextBlock Style="{StaticResource Hint}" Text="PartNumber: same Part Number = one row. FilePath: one row per file." />
+                        </StackPanel>
+
+                        <StackPanel x:Name="ColumnsRow" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource FormLabel}" Text="Columns" />
+                                <Button x:Name="CopyColumnsButton" Content="Copy columns from ▼" Padding="6,0" Click="OnCopyColumns" />
+                            </StackPanel>
+                            <TextBlock x:Name="ColumnsNote" Foreground="Gray" Margin="0,4" TextWrapping="Wrap" />
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                                    <Button Content="▲" Width="28" Margin="0,0,0,4" ToolTip="Move the selected column up" Click="OnTableColumnUp" />
+                                    <Button Content="▼" Width="28" ToolTip="Move the selected column down" Click="OnTableColumnDown" />
+                                </StackPanel>
+                                <DataGrid x:Name="ColumnsGrid" ItemsSource="{Binding Columns}" AutoGenerateColumns="False"
+                                          MinHeight="80" MaxHeight="200" CanUserAddRows="True" CanUserDeleteRows="True"
+                                          HeadersVisibility="Column" SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridComboBoxColumn Header="Set" Width="240" ItemsSource="{x:Static local:Choices.PropertySets}"
+                                                                SelectedItemBinding="{Binding Set}" />
+                                        <DataGridTemplateColumn Header="Name" Width="*"
+                                                                CellTemplate="{StaticResource PropertyNameCell}"
+                                                                CellEditingTemplate="{StaticResource PropertyNameEditor}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            </ScrollViewer>
+            </TabItem>
+            </TabControl>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

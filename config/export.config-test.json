@@ -1,0 +1,53 @@
+{
+  "SchemaVersion": 1,
+  "Tasks": [
+    {
+      "Name": "BOM",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [],
+        "Filters": [],
+        "BomStructures": [],
+        "ContentCenter": "Include"
+      },
+      "Outputs": [
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Dwg",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": "C:\\dev\\OpenInventorExport\\config\\dwg-one-sheet.ini",
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        }
+      ],
+      "FolderTemplate": "ConfigTest/{type}/{format}/{type}"
+    }
+  ],
+  "Properties": [],
+  "Rollup": {
+    "Mode": "Flat",
+    "IncludeRoot": false,
+    "IncludeAssemblies": true,
+    "ExcludeSuppressed": true,
+    "ContentCenter": "Include",
+    "BomStructures": [],
+    "Inseparable": null,
+    "Key": "PartNumber"
+  },
+  "BomColumns": [],
+  "Unresolved": "Block"
+}
