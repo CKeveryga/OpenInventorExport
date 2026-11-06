@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using OpenInventorExport.Core;
 using OpenInventorExport.Core.Model;
 using OpenInventorExport.Inventor;
 /// <summary>
-/// The actual work behind every command. Both front ends (interactive menu and
-/// one-shot arguments) call these, so behavior is identical either way.
+/// Every command as the console shows it. Both CLI front ends (interactive menu and one-shot
+/// arguments) call these, so behavior is identical either way. The work itself (collect, plan,
+/// export) is in ExportWorkflow, which the UI window uses too; this class only prints.
 /// </summary>
 internal static class Actions
 {
@@ -13,21 +13,11 @@ internal static class Actions
 
     public static Snapshot Collect(string outRoot)
     {
-        Directory.CreateDirectory(outRoot);
-
-        var clock = Stopwatch.StartNew();
-        var snapshot = SnapshotCollector.CollectFromRunningInventor();
-        TimeSpan elapsed = clock.Elapsed;
-
-        string path = Path.Combine(outRoot, "snapshot.json");
-        File.WriteAllText(path, SnapshotJson.ToJson(snapshot));
-        Console.WriteLine($"Snapshot saved: {path}");
-
-        int n = snapshot.Components.Count;
-        double perSecond = n / Math.Max(elapsed.TotalSeconds, 0.001);
-        Console.WriteLine($"Collected {n} component(s) in {FormatDuration(elapsed)} ({perSecond:F1} per second). " +
-                          $"Skipped records: {snapshot.Skipped.Count}.");
-        return snapshot;
+        var c = ExportWorkflow.Collect(outRoot);
+        Console.WriteLine($"Snapshot saved: {c.SnapshotPath}");
+        Console.WriteLine($"Collected {c.Snapshot.Components.Count} component(s) in {FormatDuration(c.Elapsed)} ({c.ComponentsPerSecond:F1} per second). " +
+                          $"Skipped records: {c.Snapshot.Skipped.Count}.");
+        return c.Snapshot;
     }
 
     private static string FormatDuration(TimeSpan t) =>
@@ -35,9 +25,7 @@ internal static class Actions
 
     private static string Timing(ExportResult r) => r.Seconds == null ? "" : $" ({r.Seconds.Value:F1} s)";
 
-    public static Snapshot Load(string file) =>
-        SnapshotJson.FromJson(File.ReadAllText(file))
-        ?? throw new InvalidDataException($"Could not read a snapshot from {file}.");
+    public static Snapshot Load(string file) => ExportWorkflow.LoadSnapshot(file);
 
     /// <summary>
     /// Reads and validates a config file. Throws InvalidDataException listing every problem.
@@ -70,30 +58,19 @@ internal static class Actions
     }
 
     /// <summary>The task named by --only (ignoring case), or all tasks if none is named. Throws if the name is unknown.</summary>
-    public static List<ExportTask> SelectTasks(ExportConfig config, string? only)
-    {
-        if (string.IsNullOrWhiteSpace(only)) return config.Tasks;
-        var match = config.Tasks.Where(t => t.Name.Equals(only, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (match.Count == 0)
-            throw new ArgumentException(
-                $"No task named '{only}'. Tasks in the config: {string.Join(", ", config.Tasks.Select(t => t.Name))}.");
-        return match;
-    }
+    public static List<ExportTask> SelectTasks(ExportConfig config, string? only) => ExportWorkflow.SelectTasks(config, only);
 
     public static void Plan(Snapshot snapshot, ExportConfig config, string outRoot, string? only = null)
     {
-        var tasks = SelectTasks(config, only);
-        var exclusions = new List<ExclusionRecord>();
-        var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
-        var tables = ExportPlanner.PlanTables(tasks, outRoot);
-        PrintPlanCounts(jobs);
-        PrintIncompleteWarning(snapshot, config);
-        PrintProjectWarning(snapshot, jobs);
-        PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
-        PrintExclusions(exclusions);
-        foreach (var j in jobs)
+        var plan = ExportWorkflow.Plan(snapshot, config, outRoot, only);
+        PrintPlanCounts(plan);
+        PrintIncompleteWarning(plan);
+        PrintProjectWarning(plan);
+        PrintContentCenterNote(plan.ContentCenterNotRecorded);
+        PrintExclusions(plan.Exclusions);
+        foreach (var j in plan.Jobs)
             Console.WriteLine($"[{j.State}] {j.TaskName}: {Path.GetFileName(j.ModelPath)} -> {j.OutputPath} {j.Detail}");
-        foreach (var t in tables)
+        foreach (var t in plan.Tables)
             Console.WriteLine($"[{t.State}] {t.TaskName}: table -> {t.OutputPath} {t.Detail}");
     }
 
@@ -106,80 +83,65 @@ internal static class Actions
     public static int Export(Snapshot snapshot, ExportConfig config, string outRoot,
         Func<int, bool>? confirm = null, string? only = null)
     {
-        var tasks = SelectTasks(config, only);   // a wrong name fails before anything else happens
+        ExportWorkflow.SelectTasks(config, only);           // a wrong name fails before anything else happens
+        ExportWorkflow.ThrowIfBlocked(snapshot, config);    // Block: refuse before planning anything
 
-        // Block: refuse before planning anything. Warn: carry on, and log every unreadable component.
-        if (config.Unresolved == UnresolvedPolicy.Block)
-            ThrowIfIncomplete(snapshot);
-        var unreadable = SnapshotChecks.BlockingProblems(snapshot);
-        PrintIncompleteBanner(unreadable);
+        var plan = ExportWorkflow.Plan(snapshot, config, outRoot, only);
+        PrintIncompleteBanner(plan.Unreadable);             // Warn: carry on, and log every unreadable component
+        PrintPlanCounts(plan);
+        PrintProjectWarning(plan);
+        PrintContentCenterNote(plan.ContentCenterNotRecorded);
+        PrintExclusions(plan.Exclusions);
 
-        var exclusions = new List<ExclusionRecord>();
-        var jobs = ExportPlanner.PlanAll(snapshot, tasks, outRoot, exclusions);
-        var tableJobs = ExportPlanner.PlanTables(tasks, outRoot);
-        PrintPlanCounts(jobs);
-        PrintProjectWarning(snapshot, jobs);
-        PrintContentCenterNote(snapshot, tasks.Any(t => t.Selection.ContentCenter != ContentCenterMode.Include));
-        PrintExclusions(exclusions);
-
-        int planned = jobs.Count(j => j.State == JobState.Planned);
-        if (confirm != null && !confirm(planned))
+        if (confirm != null && !confirm(plan.PlannedCount))
         {
             Console.WriteLine("Cancelled. Nothing was exported.");
             return 0;
         }
 
-        Directory.CreateDirectory(outRoot);
-        WriteExclusions(exclusions, Path.Combine(outRoot, "export-excluded.csv"));
-        var runClock = Stopwatch.StartNew();
-        var results = JobRunner.Run(jobs, r =>
-            Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}{Timing(r)}"));
-        TimeSpan runTime = runClock.Elapsed;
+        var run = ExportWorkflow.Run(plan, snapshot, config, outRoot, PrintResult);
 
-        foreach (var k in unreadable)
-        {
-            var r = ExportResult.ForUnreadable(k);
-            results.Add(r);
-            Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
-        }
+        PrintTaskFailures(ExportWorkflow.TaskOutcomes(plan.Tasks, run.Results));
 
-        var tableResults = ExportTables.Write(snapshot, config, tasks, tableJobs, r =>
-            Console.WriteLine($"[{r.Status}] {r.TaskName}: table {r.OutputPath} {r.Detail}"));
-        results.AddRange(tableResults);
-
-        // UTF-8 with BOM so Excel opens the CSV correctly.
-        File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
-        File.WriteAllText(Path.Combine(outRoot, "export-log.json"), ExportResultLog.ToJson(results));
-
-        PrintTaskFailures(tasks, results);
-
-        foreach (var line in ExportResultLog.TimingSummary(results))
+        foreach (var line in ExportResultLog.TimingSummary(run.Results))
             Console.WriteLine("Timing: " + line);
-        Console.WriteLine($"Timing: all file jobs took {FormatDuration(runTime)}.");
+        Console.WriteLine($"Timing: all file jobs took {FormatDuration(run.FileJobsTime)}.");
 
-        foreach (var line in ExportResultLog.Summary(results))
+        foreach (var line in ExportResultLog.Summary(run.Results))
             Console.WriteLine(line);
+        if (run.ExclusionReportPath != null)
+            Console.WriteLine($"Exclusion report: {run.ExclusionReportPath}");
         Console.WriteLine($"Log written to: {outRoot}");
-        PrintIncompleteBanner(unreadable);   // again at the end, where it is seen after a long run
-        return unreadable.Count > 0 ? ExitIncomplete : 0;
+        PrintIncompleteBanner(plan.Unreadable);             // again at the end, where it is seen after a long run
+        return plan.Unreadable.Count > 0 ? ExitIncomplete : 0;
+    }
+
+    /// <summary>One console line per result, as it happens: file jobs, unreadable components, tables.</summary>
+    private static void PrintResult(ExportResult r)
+    {
+        if (r.Status == ExportStatus.Unreadable)
+            Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
+        else if (r.Format is ExportFormat.Csv or ExportFormat.Xlsx)
+            Console.WriteLine($"[{r.Status}] {r.TaskName}: table {r.OutputPath} {r.Detail}");
+        else
+            Console.WriteLine($"[{r.Status}] {r.TaskName}: {r.Format} {Path.GetFileName(r.ModelPath)} -> {r.OutputPath} {r.Detail}{Timing(r)}");
     }
 
     /// <summary>For each task with anything not exported: a banner and the first 10 problems. The full list is in the export log.</summary>
-    private static void PrintTaskFailures(IEnumerable<ExportTask> tasks, List<ExportResult> results)
+    private static void PrintTaskFailures(List<TaskOutcome> outcomes)
     {
-        foreach (var task in tasks)
+        foreach (var o in outcomes)
         {
-            var failed = results.Where(r => r.TaskName == task.Name && r.Status != ExportStatus.Exported).ToList();
-            if (failed.Count == 0)
+            if (o.Complete)
             {
-                Console.WriteLine($"Task '{task.Name}': complete.");
+                Console.WriteLine($"Task '{o.TaskName}': complete.");
                 continue;
             }
-            Console.WriteLine($"!! TASK '{task.Name}' IS INCOMPLETE: {failed.Count} output(s) not exported (see export-log.csv):");
-            foreach (var r in failed.Take(10))
+            Console.WriteLine($"!! TASK '{o.TaskName}' IS INCOMPLETE: {o.NotExported.Count} output(s) not exported (see export-log.csv):");
+            foreach (var r in o.NotExported.Take(10))
                 Console.WriteLine($"   [{r.Status}] {r.Format} {Path.GetFileName(r.ModelPath)} {r.Detail}");
-            if (failed.Count > 10)
-                Console.WriteLine($"   ...and {failed.Count - 10} more.");
+            if (o.NotExported.Count > 10)
+                Console.WriteLine($"   ...and {o.NotExported.Count - 10} more.");
         }
     }
 
@@ -217,9 +179,11 @@ internal static class Actions
         Console.WriteLine($"Written: {path}");
 
         PrintIncompleteBanner(SnapshotChecks.BlockingProblems(snapshot));
-        PrintContentCenterNote(snapshot, config.Rollup.ContentCenter != ContentCenterMode.Include);
+        PrintContentCenterNote(config.Rollup.ContentCenter != ContentCenterMode.Include ? ContentCenterFilter.NotRecorded(snapshot) : 0);
         PrintExclusions(exclusions);
-        WriteExclusions(exclusions, Path.Combine(outRoot, $"bom-{mode}-excluded.csv"));
+        string? report = ExportWorkflow.WriteExclusionReport(exclusions, Path.Combine(outRoot, $"bom-{mode}-excluded.csv"));
+        if (report != null)
+            Console.WriteLine($"Exclusion report: {report}");
     }
 
 
@@ -232,18 +196,6 @@ internal static class Actions
         }
         foreach (var line in ExclusionReport.Summary(exclusions))
             Console.WriteLine("Left out by rules: " + line);
-    }
-
-    /// <summary>Writes the exclusion report. With nothing excluded, an old report from an earlier run is removed so it cannot mislead.</summary>
-    private static void WriteExclusions(List<ExclusionRecord> exclusions, string path)
-    {
-        if (exclusions.Count == 0)
-        {
-            if (File.Exists(path)) File.Delete(path);
-            return;
-        }
-        File.WriteAllText(path, ExclusionReport.ToCsv(exclusions), new UTF8Encoding(true));
-        Console.WriteLine($"Exclusion report: {path}");
     }
 
     /// <summary>Looks for config/&lt;name&gt; in the exe's folder and every folder above it.</summary>
@@ -273,29 +225,14 @@ internal static class Actions
         return Array.Empty<string>();
     }
 
-    private static void PrintPlanCounts(List<ExportJob> jobs) =>
-        Console.WriteLine($"Planned: {jobs.Count(j => j.State == JobState.Planned)}, " +
-                          $"Conflicts: {jobs.Count(j => j.State == JobState.Conflict)}");
+    private static void PrintPlanCounts(PlanResult plan) =>
+        Console.WriteLine($"Planned: {plan.PlannedCount}, Conflicts: {plan.ConflictCount}");
 
-    /// <summary>Components that could not be read mean the component list is incomplete, so nothing is exported.</summary>
-    private static void ThrowIfIncomplete(Snapshot snapshot)
+    private static void PrintIncompleteWarning(PlanResult plan)
     {
-        var problems = SnapshotChecks.BlockingProblems(snapshot);
-        if (problems.Count == 0) return;
-
-        var lines = problems.Take(10).Select(k => $"  [{k.Reason}] {k.OccurrencePath} {k.Detail}");
-        string more = problems.Count > 10 ? Environment.NewLine + $"  ...and {problems.Count - 10} more." : "";
-        throw new InvalidOperationException(
-            $"Export blocked: {problems.Count} component(s) could not be read, so the component list is incomplete." +
-            Environment.NewLine + string.Join(Environment.NewLine, lines) + more +
-            Environment.NewLine + "Resolve the files in Inventor, collect again, then export.");
-    }
-
-    private static void PrintIncompleteWarning(Snapshot snapshot, ExportConfig config)
-    {
-        int n = SnapshotChecks.BlockingProblems(snapshot).Count;
+        int n = plan.Unreadable.Count;
         if (n == 0) return;
-        Console.WriteLine(config.Unresolved == UnresolvedPolicy.Block
+        Console.WriteLine(plan.Policy == UnresolvedPolicy.Block
             ? $"WARNING: {n} component(s) could not be read. 'Run exports' will refuse until they are resolved (Unresolved = Block)."
             : $"WARNING: {n} component(s) could not be read. 'Run exports' will go ahead and log each one (Unresolved = Warn).");
     }
@@ -307,30 +244,16 @@ internal static class Actions
         Console.WriteLine($"   {unreadable.Count} component(s) could not be read. An unresolved assembly's children cannot be seen at all, so more may be missing.");
     }
 
-    private static void PrintContentCenterNote(Snapshot snapshot, bool ruleActive)
+    private static void PrintContentCenterNote(int notRecorded)
     {
-        if (!ruleActive) return;
-        int n = ContentCenterFilter.NotRecorded(snapshot);
-        if (n > 0)
-            Console.WriteLine($"NOTE: a Content Center rule is active, but {n} part(s) have no Content Center flag " +
+        if (notRecorded > 0)
+            Console.WriteLine($"NOTE: a Content Center rule is active, but {notRecorded} part(s) have no Content Center flag " +
                               "(snapshot collected before v0.4.1?). They are treated as NOT Content Center. Collect again to be sure.");
     }
 
-    /// <summary>
-    /// Warns if drawing exports are planned and the active Inventor project differs from the snapshot's.
-    /// Silent if Inventor is not running or the project is unknown on either side: nothing to compare.
-    /// </summary>
-    private static void PrintProjectWarning(Snapshot snapshot, List<ExportJob> jobs)
+    private static void PrintProjectWarning(PlanResult plan)
     {
-        if (!jobs.Any(j => j.State == JobState.Planned && j.Output.Source == ExportSource.Drawing))
-            return;
-
-        string? active;
-        try { active = SnapshotCollector.GetActiveProjectFile(); }
-        catch { return; }
-
-        var warning = SnapshotChecks.ProjectMismatch(snapshot, active);
-        if (warning != null)
-            Console.WriteLine(warning);
+        if (plan.ProjectWarning != null)
+            Console.WriteLine(plan.ProjectWarning);
     }
 }
