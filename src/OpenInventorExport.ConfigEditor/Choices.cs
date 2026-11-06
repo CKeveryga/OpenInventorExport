@@ -35,5 +35,6 @@ public static class Choices
     public static PropertyDataType[] DataTypes { get; } = Enum.GetValues<PropertyDataType>();
 
     public static ExportSource[] Sources { get; } = Enum.GetValues<ExportSource>();
+    public static FilterOperator[] FilterOperators { get; } = Enum.GetValues<FilterOperator>();
     public static PdfSheetMode[] PdfSheetModes { get; } = Enum.GetValues<PdfSheetMode>();
 }

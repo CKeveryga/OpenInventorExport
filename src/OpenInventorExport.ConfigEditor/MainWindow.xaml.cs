@@ -35,6 +35,7 @@ public partial class MainWindow : Window
             $"Mode default ({(_config.Rollup.Mode == RollupMode.Flat ? InseparableHandling.AsSingleItem : InseparableHandling.IncludeChildren)} in {_config.Rollup.Mode})");
         _mode = new InheritChoice<RollupMode>(ModeChoice, () => $"From General ({_config.Rollup.Mode})");
         _key = new InheritChoice<RollupKey>(KeyChoice, () => $"From General ({_config.Rollup.Key})");
+        FiltersNote.Text = FiltersHelp;
 
         // Any edit anywhere in the window schedules a re-check. The key and mouse events catch
         // grid edits (commit with Enter, Delete a row), which have no routed "changed" event.
@@ -77,6 +78,7 @@ public partial class MainWindow : Window
         _savedJson = ExportConfigJson.ToJson(config);
         GeneralPage.DataContext = _config;
         _inseparable.Load(() => _config.Rollup.Inseparable, v => _config.Rollup.Inseparable = v);
+        RollupBomRules.Load(_config.Rollup.BomStructures, RollupChildrenDefault);
         RebuildPageList(selectIndex: 0);
         Refresh();
     }
@@ -174,7 +176,8 @@ public partial class MainWindow : Window
         GeneralPage.Visibility = task == null ? Visibility.Visible : Visibility.Collapsed;
         TaskPage.Visibility = task == null ? Visibility.Collapsed : Visibility.Visible;
         TaskPage.DataContext = task;
-        TaskSummary.Text = task == null ? "" : Summary(task);
+        if (task != null)
+            TaskBomRules.Load(task.Selection.BomStructures, TaskChildrenDefault);
         RebuildOutputsList(selectIndex: 0);
     }
 
@@ -281,26 +284,10 @@ public partial class MainWindow : Window
         for (int i = 0; i < _config.Tasks.Count && i + 1 < PageList.Items.Count; i++)
             ((ListBoxItem)PageList.Items[i + 1]).Content = TaskLabel(_config.Tasks[i]);
 
-        if (SelectedTask is { } task)
-            TaskSummary.Text = Summary(task);
-
         _inseparable.UpdateLabel();
+        RollupBomRules.UpdateLabels();
         RefreshOutputs();
 
         Title = "Config Editor - " + (_path ?? "(new config)") + (IsChanged ? " *" : "");
-    }
-
-    /// <summary>A read-only description of the parts of a task that cannot be edited yet.</summary>
-    private static string Summary(ExportTask task)
-    {
-        var s = task.Selection;
-        var text = new StringBuilder();
-        if (s.Filters.Count == 0 && s.BomStructures.Count == 0)
-            text.AppendLine("No filters, no BOM structure rules (defaults apply).");
-        foreach (var f in s.Filters)
-            text.AppendLine($"Filter: {f.Property} {f.Operator} {f.Value}");
-        foreach (var r in s.BomStructures)
-            text.AppendLine($"BOM rule: {r.Structure} item {r.Include?.ToString() ?? "default"}, children {r.Children?.ToString() ?? "default"}");
-        return text.ToString().TrimEnd();
     }
 }

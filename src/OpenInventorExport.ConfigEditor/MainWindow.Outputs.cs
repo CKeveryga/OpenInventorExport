@@ -303,23 +303,23 @@ public partial class MainWindow
     // ---------- Reordering column rows ----------
 
     private void OnTableColumnUp(object sender, RoutedEventArgs e) =>
-        MoveColumn(ColumnsGrid, SelectedOutput?.Columns, -1);
+        MoveRow(ColumnsGrid, SelectedOutput?.Columns, -1);
     private void OnTableColumnDown(object sender, RoutedEventArgs e) =>
-        MoveColumn(ColumnsGrid, SelectedOutput?.Columns, +1);
-    private void OnBomColumnUp(object sender, RoutedEventArgs e) => MoveColumn(BomColumnsGrid, _config.BomColumns, -1);
-    private void OnBomColumnDown(object sender, RoutedEventArgs e) => MoveColumn(BomColumnsGrid, _config.BomColumns, +1);
+        MoveRow(ColumnsGrid, SelectedOutput?.Columns, +1);
+    private void OnBomColumnUp(object sender, RoutedEventArgs e) => MoveRow(BomColumnsGrid, _config.BomColumns, -1);
+    private void OnBomColumnDown(object sender, RoutedEventArgs e) => MoveRow(BomColumnsGrid, _config.BomColumns, +1);
 
-    /// <summary>Moves the selected column one place up (-1) or down (+1); the order is the column order in the table.</summary>
-    private void MoveColumn(DataGrid grid, List<BomColumn>? list, int step)
+    /// <summary>Moves the selected grid row one place up (-1) or down (+1) in its list (columns, filters).</summary>
+    private void MoveRow<T>(DataGrid grid, List<T>? list, int step) where T : class
     {
         FinishEditing(grid);
-        if (list == null || grid.SelectedItem is not BomColumn column) return;
-        int from = list.IndexOf(column), to = from + step;
+        if (list == null || grid.SelectedItem is not T item) return;
+        int from = list.IndexOf(item), to = from + step;
         if (from < 0 || to < 0 || to >= list.Count) return;
         list.RemoveAt(from);
-        list.Insert(to, column);
+        list.Insert(to, item);
         grid.Items.Refresh();
-        grid.SelectedItem = column;
+        grid.SelectedItem = item;
         ScheduleCheck();
     }
 }

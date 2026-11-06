@@ -13,6 +13,16 @@
         <DataTemplate x:Key="PropertyNameCell">
             <TextBlock Text="{Binding Name}" Margin="2,0" />
         </DataTemplate>
+        <local:FilterValueConverter x:Key="FilterValue" />
+        <!-- The same drop-down for a filter row, whose name field is called Property -->
+        <DataTemplate x:Key="FilterPropertyCell">
+            <TextBlock Text="{Binding Property}" Margin="2,0" />
+        </DataTemplate>
+        <DataTemplate x:Key="FilterPropertyEditor">
+            <ComboBox IsEditable="True"
+                      ItemsSource="{Binding Set, Converter={StaticResource PropertyNames}}"
+                      Text="{Binding Property, UpdateSourceTrigger=PropertyChanged}" />
+        </DataTemplate>
         <DataTemplate x:Key="PropertyNameEditor">
             <ComboBox IsEditable="True"
                       ItemsSource="{Binding Set, Converter={StaticResource PropertyNames}}"
@@ -111,9 +121,10 @@
                                   IsChecked="{Binding Rollup.IncludeRoot}" />
                         <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4" Content="Exclude suppressed"
                                   IsChecked="{Binding Rollup.ExcludeSuppressed}" />
-                        <TextBlock Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="2" Foreground="Gray" VerticalAlignment="Center"
-                                   Text="BOM structure rules: in a later step" />
                     </Grid>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (for the bom command)" />
+                    <local:BomRulesTable x:Name="RollupBomRules" HorizontalAlignment="Left" />
 
                     <TextBlock Style="{StaticResource Heading}" Text="BOM columns (default columns for bom and for tables)" />
                     <DockPanel>
@@ -225,8 +236,43 @@
                 </Grid>
                 <TextBlock Foreground="Gray" Text="Document types: none ticked = all types." />
 
-                <TextBlock Style="{StaticResource Heading}" Text="Filters and BOM structure rules (read only for now; editing comes in the next step)" />
-                <TextBlock x:Name="TaskSummary" TextWrapping="Wrap" />
+                <TextBlock Style="{StaticResource Heading}" Text="Filters (a file is selected only if it passes every filter)" />
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                        <Button Content="▲" Width="28" Margin="0,0,0,4" ToolTip="Move the selected filter up" Click="OnFilterUp" />
+                        <Button Content="▼" Width="28" ToolTip="Move the selected filter down" Click="OnFilterDown" />
+                    </StackPanel>
+                    <DataGrid x:Name="FiltersGrid" ItemsSource="{Binding Selection.Filters}" AutoGenerateColumns="False"
+                              MinHeight="60" MaxHeight="200" CanUserAddRows="True" CanUserDeleteRows="True"
+                              HeadersVisibility="Column" SelectionMode="Single" CellEditEnding="OnFilterCellEditEnding">
+                        <DataGrid.Columns>
+                            <DataGridComboBoxColumn Header="Set" Width="220" ItemsSource="{x:Static local:Choices.PropertySets}"
+                                                    SelectedItemBinding="{Binding Set}" />
+                            <DataGridTemplateColumn Header="Property" Width="*"
+                                                    CellTemplate="{StaticResource FilterPropertyCell}"
+                                                    CellEditingTemplate="{StaticResource FilterPropertyEditor}" />
+                            <DataGridComboBoxColumn Header="Operator" Width="140" ItemsSource="{x:Static local:Choices.FilterOperators}"
+                                                    SelectedItemBinding="{Binding Operator}" />
+                            <DataGridTemplateColumn Header="Value" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="2,0" Text="{Binding Converter={StaticResource FilterValue}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Value, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding Converter={StaticResource FilterValue}, ConverterParameter=enabled}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+                <TextBlock Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap" x:Name="FiltersNote" />
+
+                <TextBlock Style="{StaticResource Heading}" Text="BOM structure rules (which assemblies, and what inside them, this task selects)" />
+                <local:BomRulesTable x:Name="TaskBomRules" HorizontalAlignment="Left" />
 
                 <TextBlock Style="{StaticResource Heading}" Text="Outputs (what this task produces, each in an optional subfolder of the root folder)" />
                 <Grid>
