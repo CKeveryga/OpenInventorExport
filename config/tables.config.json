@@ -1,44 +1,209 @@
 {
-	"SchemaVersion": 1,
-
-	"Unresolved": "Block", 
-
-	"Tasks": [
-		{
-			"Name": "Tables",
-			"FolderTemplate": "{task}",
-			"Selection": {
-				"Scope": "AllUniqueFiles",
-				"DocumentTypes": [ "Part", "SheetMetal", "Assembly" ]
-			},
-			"Outputs": [
-				{ "Format": "Xlsx", "Name": "XL_Struc_PN", "Mode": "Structured", "Key": "PartNumber" },
-				{ "Format": "Xlsx", "Name": "XL_Flat_PN", "Mode": "Flat", "Key": "PartNumber" },
-				{ "Format": "Xlsx", "Name": "XL_Occ_PN", "Mode": "Occurrence", "Key": "PartNumber" },
-				{ "Format": "Csv", "Name": "CSV_Struc_PN", "Mode": "Structured", "Key": "PartNumber" },
-				{ "Format": "Csv", "Name": "CS_Flat_PN", "Mode": "Flat", "Key": "PartNumber" },
-				{ "Format": "Csv", "Name": "CSV_Occ_PN", "Mode": "Occurrence", "Key": "PartNumber" },
-
-				{ "Format": "Xlsx", "Name": "XL_Struc_FP", "Mode": "Structured", "Key": "FilePath" },
-				{ "Format": "Xlsx", "Name": "XL_Flat_FP", "Mode": "Flat", "Key": "FilePath" },
-				{ "Format": "Xlsx", "Name": "XL_Occ_FP", "Mode": "Occurrence", "Key": "FilePath" },
-				{ "Format": "Csv", "Name": "CSV_Struc_FP", "Mode": "Structured", "Key": "FilePath" },
-				{ "Format": "Csv", "Name": "CS_Flat_FP", "Mode": "Flat", "Key": "FilePath" },
-				{ "Format": "Csv", "Name": "CSV_Occ_FP", "Mode": "Occurrence", "Key": "FilePath" }
-			]
-		}
-	],
-
-	"Rollup": {
-		"Mode": "Structured",
-		"IncludeAssemblies": true,
-		"Key": "PartNumber"
-	},
-
-	"BomColumns": [
-		{ "Name": "Item Number"},
-		{ "Name": "Part Number" },
-		{ "Name": "Description" },
-		{ "Name": "Vendor"}
-	]
+  "SchemaVersion": 1,
+  "Tasks": [
+    {
+      "Name": "Tables",
+      "Selection": {
+        "Scope": "AllUniqueFiles",
+        "DocumentTypes": [
+          "Part",
+          "SheetMetal",
+          "Assembly"
+        ],
+        "Filters": [],
+        "BomStructures": [],
+        "ContentCenter": "Include"
+      },
+      "Outputs": [
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Struc_PN",
+          "Columns": [
+            {
+              "Name": "Description",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Document SubType",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Flat Pattern Length",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Flat Pattern Width",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Mass",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Stock Number",
+              "Set": "Design Tracking Properties"
+            }
+          ],
+          "Mode": "Structured",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Flat_PN",
+          "Columns": [],
+          "Mode": "Flat",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Occ_PN",
+          "Columns": [],
+          "Mode": "Occurrence",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CSV_Struc_PN",
+          "Columns": [],
+          "Mode": "Structured",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CS_Flat_PN",
+          "Columns": [],
+          "Mode": "Flat",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CSV_Occ_PN",
+          "Columns": [],
+          "Mode": "Occurrence",
+          "Key": "PartNumber"
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Struc_FP",
+          "Columns": [],
+          "Mode": "Structured",
+          "Key": "FilePath"
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Flat_FP",
+          "Columns": [],
+          "Mode": "Flat",
+          "Key": "FilePath"
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "XL_Occ_FP",
+          "Columns": [],
+          "Mode": "Occurrence",
+          "Key": "FilePath"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CSV_Struc_FP",
+          "Columns": [],
+          "Mode": "Structured",
+          "Key": "FilePath"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CS_Flat_FP",
+          "Columns": [],
+          "Mode": "Flat",
+          "Key": "FilePath"
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "CSV_Occ_FP",
+          "Columns": [],
+          "Mode": "Occurrence",
+          "Key": "FilePath"
+        }
+      ],
+      "FolderTemplate": "{task}"
+    }
+  ],
+  "Properties": [],
+  "Rollup": {
+    "Mode": "Structured",
+    "IncludeRoot": false,
+    "IncludeAssemblies": true,
+    "ExcludeSuppressed": true,
+    "ContentCenter": "Include",
+    "BomStructures": [],
+    "Inseparable": null,
+    "Key": "PartNumber"
+  },
+  "BomColumns": [
+    {
+      "Name": "Item Number",
+      "Set": "Design Tracking Properties"
+    },
+    {
+      "Name": "Part Number",
+      "Set": "Design Tracking Properties"
+    },
+    {
+      "Name": "Description",
+      "Set": "Design Tracking Properties"
+    },
+    {
+      "Name": "Vendor",
+      "Set": "Design Tracking Properties"
+    }
+  ],
+  "Unresolved": "Block"
 }

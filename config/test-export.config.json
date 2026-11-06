@@ -256,6 +256,75 @@
           "Columns": [],
           "Mode": null,
           "Key": null
+        },
+        {
+          "Format": "Pdf",
+          "Source": "Drawing",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Dwf",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "Gina",
+          "Name": null,
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Csv",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "",
+          "Name": "Hello",
+          "Columns": [],
+          "Mode": null,
+          "Key": null
+        },
+        {
+          "Format": "Xlsx",
+          "Source": "Model",
+          "PdfSheets": "AllInOne",
+          "IniFile": null,
+          "Folder": "Hello/\\wdcdc\\efvdwv",
+          "Name": "Hello",
+          "Columns": [
+            {
+              "Name": "Part Number",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Designer",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Document SubType",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Document SubType Name",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Material",
+              "Set": "Design Tracking Properties"
+            },
+            {
+              "Name": "Description",
+              "Set": "Design Tracking Properties"
+            }
+          ],
+          "Mode": null,
+          "Key": null
         }
       ],
       "FolderTemplate": "{task}"
