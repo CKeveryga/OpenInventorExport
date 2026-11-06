@@ -366,3 +366,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Backups written by the config editor (ExportConfigFile.Save)
+*.bak
