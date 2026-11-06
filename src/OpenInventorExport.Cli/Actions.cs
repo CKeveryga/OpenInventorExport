@@ -143,7 +143,7 @@ internal static class Actions
             Console.WriteLine($"[{r.Status}] {r.ModelPath} {r.Detail}");
         }
 
-        WriteTables(snapshot, config, tasks, tableJobs, results);
+        ExportTables.WriteTables(snapshot, config, tasks, tableJobs, results);
 
         // UTF-8 with BOM so Excel opens the CSV correctly.
         File.WriteAllText(Path.Combine(outRoot, "export-log.csv"), ExportResultLog.ToCsv(results), new UTF8Encoding(true));
@@ -160,56 +160,6 @@ internal static class Actions
         Console.WriteLine($"Log written to: {outRoot}");
         PrintIncompleteBanner(unreadable);   // again at the end, where it is seen after a long run
         return unreadable.Count > 0 ? ExitIncomplete : 0;
-    }
-
-    /// <summary>
-    /// Writes each planned table. Every table lists all the files its task selects, whatever was exported,
-    /// and gets its own line in the export log (ModelPath "(table)").
-    /// </summary>
-    private static void WriteTables(Snapshot snapshot, ExportConfig config, IEnumerable<ExportTask> tasks,
-        List<TableJob> tableJobs, List<ExportResult> results)
-    {
-        foreach (var job in tableJobs)
-        {
-            var result = new ExportResult
-            {
-                TaskName = job.TaskName,
-                Format = job.Output.Format,
-                ModelPath = "(table)",
-                OutputPath = job.OutputPath
-            };
-            results.Add(result);
-
-            if (job.State == JobState.Conflict)
-            {
-                result.Status = ExportStatus.Conflict;
-                result.Detail = job.Detail;
-                Console.WriteLine($"[{result.Status}] {job.TaskName}: table {job.OutputPath} {job.Detail}");
-                continue;
-            }
-
-            try
-            {
-                var task = tasks.First(t => t.Name == job.TaskName);
-                var rows = TaskTable.Rows(snapshot, task, job.Output, config);
-                var columns = TaskTable.Columns(job.Output, config);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(job.OutputPath)!);
-                if (job.Output.Format == ExportFormat.Xlsx)
-                    XlsxTableWriter.Write(job.OutputPath, rows, columns);
-                else
-                    File.WriteAllText(job.OutputPath, CsvTableWriter.Write(rows, columns), new UTF8Encoding(true));
-
-                result.Status = ExportStatus.Exported;
-                result.Detail = $"{rows.Count} row(s)";
-            }
-            catch (Exception ex)
-            {
-                result.Status = ExportStatus.Failed;
-                result.Detail = ex.Message;
-            }
-            Console.WriteLine($"[{result.Status}] {job.TaskName}: table {job.OutputPath} {result.Detail}");
-        }
     }
 
     /// <summary>For each task with anything not exported: a banner and the first 10 problems. The full list is in the export log.</summary>
