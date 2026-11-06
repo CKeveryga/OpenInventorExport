@@ -21,13 +21,11 @@ public static class ExportTaskValidator
         if (task.Outputs.Count == 0)
             problems.Add($"Task '{task.Name}' has no outputs.");
 
-        bool hasTable = false;
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var o in task.Outputs)
         {
             bool table = ExportPlanner.IsTable(o.Format);
-            if (table) hasTable = true;
 
             bool ok = o.Format switch
             {
@@ -66,8 +64,8 @@ public static class ExportTaskValidator
         foreach (Match m in Regex.Matches(template, @"\{([^}]*)\}"))
             if (!KnownTokens.Contains(m.Groups[1].Value))
                 problems.Add($"Unknown token {m.Value} in FolderTemplate.");
-        if (hasTable && template.Contains("{type}"))
-            problems.Add($"Task '{task.Name}': a table covers the whole task, so FolderTemplate cannot use {{type}}.");
+        // {type} with a table is fine: a table covers the whole task, so ExportPlanner.PlanTables leaves out
+        // every folder level of the FolderTemplate that contains {type}.
 
         foreach (var type in task.Selection.DocumentTypes.Where(x => !DocumentTypes.IsKnown(x)))
             problems.Add($"Unknown document type '{type}'. Known types: {string.Join(", ", DocumentTypes.All)}.");
