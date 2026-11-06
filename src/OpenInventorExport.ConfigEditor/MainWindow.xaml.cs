@@ -239,6 +239,12 @@ public partial class MainWindow : Window
         if (SelectedTask is { } task)
             TaskSummary.Text = Summary(task);
 
+        // The Columns panel follows the selected output row, and shows only for a table (its Format may just have changed).
+        var output = OutputsGrid.SelectedItem as OutputSpec;
+        bool isTable = output != null && ExportPlanner.IsTable(output.Format);
+        TableColumnsPanel.Visibility = isTable ? Visibility.Visible : Visibility.Collapsed;
+        TableColumnsPanel.DataContext = isTable ? output : null;
+
         Title = "Config Editor - " + (_path ?? "(new config)") + (IsChanged ? " *" : "");
     }
 
@@ -253,16 +259,6 @@ public partial class MainWindow : Window
             text.AppendLine($"Filter: {f.Property} {f.Operator} {f.Value}");
         foreach (var r in s.BomStructures)
             text.AppendLine($"BOM rule: {r.Structure} item {r.Include?.ToString() ?? "default"}, children {r.Children?.ToString() ?? "default"}");
-        text.AppendLine();
-        text.AppendLine("Outputs:");
-        foreach (var o in task.Outputs)
-        {
-            string where = string.IsNullOrEmpty(o.Folder) ? "root folder" : $"folder '{o.Folder}'";
-            string what = o.Format is ExportFormat.Csv or ExportFormat.Xlsx
-                ? $"{o.Format} table '{o.Name ?? task.Name}'" + (o.Mode != null ? $" ({o.Mode})" : "")
-                : $"{o.Format} from {o.Source}";
-            text.AppendLine($"  {what}, {where}");
-        }
-        return text.ToString();
+        return text.ToString().TrimEnd();
     }
 }
